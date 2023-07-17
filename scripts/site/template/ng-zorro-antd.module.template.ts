@@ -46,6 +46,7 @@ import { NzProgressModule } from 'ng-zorro-antd/progress';
 import { NzRadioModule } from 'ng-zorro-antd/radio';
 import { NzRateModule } from 'ng-zorro-antd/rate';
 import { NzResultModule } from 'ng-zorro-antd/result';
+import { NzSegmentedModule } from 'ng-zorro-antd/segmented';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzSkeletonModule } from 'ng-zorro-antd/skeleton';
 import { NzSliderModule } from 'ng-zorro-antd/slider';
@@ -64,6 +65,8 @@ import { NzTreeModule } from 'ng-zorro-antd/tree';
 import { NzTreeSelectModule } from 'ng-zorro-antd/tree-select';
 import { NzTypographyModule } from 'ng-zorro-antd/typography';
 import { NzUploadModule } from 'ng-zorro-antd/upload';
+import { NzQRCodeModule } from 'ng-zorro-antd/qr-code';
+import { NzWaterMarkModule } from 'ng-zorro-antd/water-mark';
 
 @NgModule({
   exports: [
@@ -111,6 +114,7 @@ import { NzUploadModule } from 'ng-zorro-antd/upload';
     NzRadioModule,
     NzRateModule,
     NzResultModule,
+    NzSegmentedModule,
     NzSelectModule,
     NzSkeletonModule,
     NzSliderModule,
@@ -130,7 +134,9 @@ import { NzUploadModule } from 'ng-zorro-antd/upload';
     NzTreeSelectModule,
     NzTypographyModule,
     NzUploadModule,
-    NzWaveModule
+    NzWaveModule,
+    NzQRCodeModule,
+    NzWaterMarkModule
   ]
 })
 export class SiteNgZorroAntdModule {}

@@ -7,12 +7,12 @@ import { ESCAPE, hasModifierKey } from '@angular/cdk/keycodes';
 import { OverlayRef } from '@angular/cdk/overlay';
 import { EventEmitter } from '@angular/core';
 import { Subject } from 'rxjs';
-import { filter, take } from 'rxjs/operators';
+import { filter, take, takeUntil } from 'rxjs/operators';
 
 import { NzSafeAny } from 'ng-zorro-antd/core/types';
 import { isPromise } from 'ng-zorro-antd/core/util';
 
-import { BaseModalContainerComponent } from './modal-container';
+import { BaseModalContainerComponent } from './modal-container.directive';
 import { NzModalLegacyAPI } from './modal-legacy-api';
 import { ModalOptions } from './modal-types';
 
@@ -31,10 +31,12 @@ export class NzModalRef<T = NzSafeAny, R = NzSafeAny> implements NzModalLegacyAP
   componentInstance: T | null = null;
   result?: R;
   state: NzModalState = NzModalState.OPEN;
-  afterClose: Subject<R> = new Subject();
+  afterClose: Subject<R | undefined> = new Subject();
   afterOpen: Subject<void> = new Subject();
 
   private closeTimeout?: number;
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private overlayRef: OverlayRef,
@@ -64,7 +66,7 @@ export class NzModalRef<T = NzSafeAny, R = NzSafeAny> implements NzModalLegacyAP
         this._finishDialogClose();
       });
 
-    containerInstance.containerClick.pipe(take(1)).subscribe(() => {
+    containerInstance.containerClick.pipe(take(1), takeUntil(this.destroy$)).subscribe(() => {
       const cancelable = !this.config.nzCancelLoading && !this.config.nzOkLoading;
       if (cancelable) {
         this.trigger(NzTriggerAction.CANCEL);
@@ -88,9 +90,11 @@ export class NzModalRef<T = NzSafeAny, R = NzSafeAny> implements NzModalLegacyAP
         this.trigger(NzTriggerAction.CANCEL);
       });
 
-    containerInstance.cancelTriggered.subscribe(() => this.trigger(NzTriggerAction.CANCEL));
+    containerInstance.cancelTriggered
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.trigger(NzTriggerAction.CANCEL));
 
-    containerInstance.okTriggered.subscribe(() => this.trigger(NzTriggerAction.OK));
+    containerInstance.okTriggered.pipe(takeUntil(this.destroy$)).subscribe(() => this.trigger(NzTriggerAction.OK));
 
     overlayRef.detachments().subscribe(() => {
       this.afterClose.next(this.result);
@@ -163,6 +167,9 @@ export class NzModalRef<T = NzSafeAny, R = NzSafeAny> implements NzModalLegacyAP
   }
 
   private async trigger(action: NzTriggerAction): Promise<void> {
+    if (this.state === NzModalState.CLOSING) {
+      return;
+    }
     const trigger = { ok: this.config.nzOnOk, cancel: this.config.nzOnCancel }[action];
     const loadingKey = { ok: 'nzOkLoading', cancel: 'nzCancelLoading' }[action] as 'nzOkLoading' | 'nzCancelLoading';
     const loading = this.config[loadingKey];
@@ -177,7 +184,7 @@ export class NzModalRef<T = NzSafeAny, R = NzSafeAny> implements NzModalLegacyAP
         this.config[loadingKey] = true;
         let doClose: boolean | void | {} = false;
         try {
-          doClose = await result;
+          doClose = (await result) as typeof result;
         } finally {
           this.config[loadingKey] = false;
           this.closeWhitResult(doClose);
@@ -197,5 +204,6 @@ export class NzModalRef<T = NzSafeAny, R = NzSafeAny> implements NzModalLegacyAP
   _finishDialogClose(): void {
     this.state = NzModalState.CLOSED;
     this.overlayRef.dispose();
+    this.destroy$.next();
   }
 }

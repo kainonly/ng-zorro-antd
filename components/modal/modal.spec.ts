@@ -7,6 +7,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   Directive,
+  Inject,
   Injector,
   Input,
   NgModule,
@@ -26,6 +27,7 @@ import {
   dispatchMouseEvent
 } from 'ng-zorro-antd/core/testing';
 
+import { NZ_MODAL_DATA } from './modal-config';
 import { NzModalRef, NzModalState } from './modal-ref';
 import { NzModalComponent } from './modal.component';
 import { NzModalModule } from './modal.module';
@@ -122,9 +124,7 @@ describe('NzModal', () => {
   it('should open modal with component', () => {
     const modalRef = modalService.create({
       nzContent: TestWithModalContentComponent,
-      nzComponentParams: {
-        value: 'Modal'
-      }
+      nzData: 'Modal'
     });
 
     fixture.detectChanges();
@@ -132,6 +132,20 @@ describe('NzModal', () => {
     const modalContentElement = overlayContainerElement.querySelector('.modal-content');
     expect(modalContentElement).toBeTruthy();
     expect(modalContentElement!.textContent).toBe('Hello Modal');
+    expect(modalRef.getContentComponent() instanceof TestWithModalContentComponent).toBe(true);
+    expect(modalRef.getContentComponent().modalRef).toBe(modalRef);
+    modalRef.close();
+  });
+
+  it('should open a modal with data', () => {
+    const modalRef = modalService.create({
+      nzContent: TestWithModalContentComponent,
+      nzData: 'NG-ZORRO'
+    });
+    fixture.detectChanges();
+    const modalContentElement = overlayContainerElement.querySelector('.modal-data');
+    expect(modalContentElement).toBeTruthy();
+    expect(modalContentElement!.textContent?.toString().includes('NG-ZORRO')).toBeTruthy();
     expect(modalRef.getContentComponent() instanceof TestWithModalContentComponent).toBe(true);
     expect(modalRef.getContentComponent().modalRef).toBe(modalRef);
     modalRef.close();
@@ -151,12 +165,24 @@ describe('NzModal', () => {
     modalRef.close();
   });
 
+  it('should open modal with template and pass data', () => {
+    fixture.componentInstance.value = 'Modal';
+    fixture.detectChanges();
+    const modalRef = modalService.create({
+      nzContent: fixture.componentInstance.templateRef,
+      nzData: 'NG-ZORRO'
+    });
+    fixture.detectChanges();
+    const modalContentElement = overlayContainerElement.querySelector('.modal-template-data');
+    expect(modalContentElement).toBeTruthy();
+    expect(modalContentElement!.textContent?.includes('NG-ZORRO')).toBeTruthy();
+    expect(fixture.componentInstance.modalRef).toBe(modalRef);
+    modalRef.close();
+  });
+
   it('should be thrown when attaching repeatedly', () => {
     const modalRefComponent = modalService.create({
-      nzContent: TestWithModalContentComponent,
-      nzComponentParams: {
-        value: 'Modal'
-      }
+      nzContent: TestWithModalContentComponent
     });
 
     expect(() => {
@@ -908,6 +934,32 @@ describe('NzModal', () => {
       expect(overlayContainerElement.querySelectorAll('nz-modal-container').length).toBe(0);
     }));
 
+    it('should omit any action when closing', async function () {
+      const onOk = jasmine.createSpy('onOk', () => {});
+      const onCancel = jasmine.createSpy('onCancel', () => {});
+      const modalRef = modalService.create({
+        nzContent: TestWithModalContentComponent,
+        nzOnOk: onOk,
+        nzOnCancel: onCancel
+      });
+      fixture.detectChanges();
+      expect(overlayContainerElement.querySelectorAll('nz-modal-container').length).toBe(1);
+      await modalRef.triggerOk();
+      expect(onOk).toHaveBeenCalledTimes(1);
+      fakeAsync(() => {
+        expect(modalRef.getState()).toBe(NzModalState.CLOSING);
+        modalRef.triggerOk();
+        modalRef.triggerOk();
+        modalRef.triggerCancel();
+        modalRef.triggerCancel();
+        expect(onOk).toHaveBeenCalledTimes(1);
+        expect(onCancel).toHaveBeenCalledTimes(0);
+        fixture.detectChanges();
+        flush();
+        expect(overlayContainerElement.querySelectorAll('nz-modal-container').length).toBe(0);
+      });
+    });
+
     it('should set loading state when the callback is promise', fakeAsync(() => {
       const modalRef = modalService.create({
         nzContent: TestWithModalContentComponent,
@@ -1095,7 +1147,7 @@ describe('NzModal', () => {
       });
 
       fixture.detectChanges();
-      flushMicrotasks();
+      tick(16);
 
       expect(document.activeElement!.tagName).toBe('NZ-MODAL-CONTAINER', 'Expected modal container to be focused.');
     }));
@@ -1394,9 +1446,7 @@ describe('NzModal', () => {
     it('should open confirm with component', () => {
       const modalRef = modalService.confirm({
         nzContent: TestWithModalContentComponent,
-        nzComponentParams: {
-          value: 'Confirm'
-        }
+        nzData: 'Confirm'
       });
 
       fixture.detectChanges();
@@ -1655,8 +1705,9 @@ class TestWithOnPushViewContainerComponent {
 
 @Component({
   template: `
-    <ng-template let-modalRef="modalRef">
+    <ng-template let-modalRef="modalRef" let-data>
       <span class="modal-template-content">Hello {{ value }}</span>
+      <span class="modal-template-data">My favorite UI framework is {{ data }}</span>
       {{ setModalRef(modalRef) }}
     </ng-template>
   `
@@ -1677,6 +1728,7 @@ class TestWithServiceComponent {
 @Component({
   template: `
     <div class="modal-content">Hello {{ value }}</div>
+    <div class="modal-data">My favorite UI Library is {{ nzModalData }}</div>
     <input />
     <button (click)="destroyModal()">destroy</button>
   `
@@ -1684,7 +1736,12 @@ class TestWithServiceComponent {
 class TestWithModalContentComponent {
   @Input() value?: string;
 
-  constructor(public modalRef: NzModalRef, public modalInjector: Injector) {}
+  nzModalData: string;
+
+  constructor(public modalRef: NzModalRef, public modalInjector: Injector, @Inject(NZ_MODAL_DATA) nzData: string) {
+    this.value = nzData;
+    this.nzModalData = nzData;
+  }
 
   destroyModal(): void {
     this.modalRef.destroy();

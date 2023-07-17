@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { Observable, Observer } from 'rxjs';
 
 @Component({
@@ -44,8 +44,10 @@ import { Observable, Observer } from 'rxjs';
       </nz-form-item>
       <nz-form-item>
         <nz-form-label [nzSpan]="7" nzRequired>Comment</nz-form-label>
-        <nz-form-control [nzSpan]="12" nzErrorTip="Please write something here!">
-          <textarea formControlName="comment" nz-input rows="2" placeholder="write any thing"></textarea>
+        <nz-form-control [nzSpan]="12" nzHasFeedback nzErrorTip="Please write something here!">
+          <nz-textarea-count [nzMaxCharacterCount]="2000">
+            <textarea formControlName="comment" nz-input rows="2" placeholder="write any thing"></textarea>
+          </nz-textarea-count>
         </nz-form-control>
       </nz-form-item>
       <nz-form-item>
@@ -70,7 +72,7 @@ import { Observable, Observer } from 'rxjs';
   ]
 })
 export class NzDemoFormValidateReactiveComponent {
-  validateForm: FormGroup;
+  validateForm: UntypedFormGroup;
 
   submitForm(): void {
     console.log('submit', this.validateForm.value);
@@ -92,7 +94,7 @@ export class NzDemoFormValidateReactiveComponent {
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  userNameAsyncValidator = (control: FormControl) =>
+  userNameAsyncValidator = (control: UntypedFormControl) =>
     new Observable((observer: Observer<ValidationErrors | null>) => {
       setTimeout(() => {
         if (control.value === 'JasonWood') {
@@ -105,7 +107,7 @@ export class NzDemoFormValidateReactiveComponent {
       }, 1000);
     });
 
-  confirmValidator = (control: FormControl): { [s: string]: boolean } => {
+  confirmValidator = (control: UntypedFormControl): { [s: string]: boolean } => {
     if (!control.value) {
       return { error: true, required: true };
     } else if (control.value !== this.validateForm.controls.password.value) {
@@ -114,7 +116,7 @@ export class NzDemoFormValidateReactiveComponent {
     return {};
   };
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: UntypedFormBuilder) {
     this.validateForm = this.fb.group({
       userName: ['', [Validators.required], [this.userNameAsyncValidator]],
       email: ['', [Validators.email, Validators.required]],

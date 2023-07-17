@@ -40,7 +40,9 @@ import { getConfigFromComponent } from './utils';
   template: ``,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class NzModalComponent<T = NzSafeAny, R = NzSafeAny> implements OnChanges, NzModalLegacyAPI<T, R>, OnDestroy {
+export class NzModalComponent<T extends ModalOptions = NzSafeAny, R = NzSafeAny>
+  implements OnChanges, NzModalLegacyAPI<T, R>, OnDestroy
+{
   static ngAcceptInputType_nzMask: BooleanInput;
   static ngAcceptInputType_nzMaskClosable: BooleanInput;
   static ngAcceptInputType_nzCloseOnNavigation: BooleanInput;
@@ -68,7 +70,6 @@ export class NzModalComponent<T = NzSafeAny, R = NzSafeAny> implements OnChanges
   @Input() @InputBoolean() nzNoAnimation = false;
   @Input() @InputBoolean() nzCentered = false;
   @Input() nzContent?: string | TemplateRef<{}> | Type<T>;
-  @Input() nzComponentParams?: T;
   @Input() nzFooter?: string | TemplateRef<{}> | Array<ModalButtonOptions<T>> | null;
   @Input() nzZIndex: number = 1000;
   @Input() nzWidth: number | string = 520;

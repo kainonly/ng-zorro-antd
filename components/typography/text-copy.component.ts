@@ -38,7 +38,7 @@ import { NzI18nService, NzTextI18nInterface } from 'ng-zorro-antd/i18n';
       (click)="onClick()"
     >
       <ng-container *nzStringTemplateOutlet="copied ? copedIcon : copyIcon; let icon">
-        <i nz-icon [nzType]="icon"></i>
+        <span nz-icon [nzType]="icon"></span>
       </ng-container>
     </button>
   `,
@@ -55,7 +55,7 @@ export class NzTextCopyComponent implements OnInit, OnDestroy, OnChanges {
   copedTooltip: NzTSType | null = null;
   copyIcon: NzTSType = 'copy';
   copedIcon: NzTSType = 'check';
-  private destroy$ = new Subject();
+  private destroy$ = new Subject<boolean>();
 
   @Input() text!: string;
   @Input() tooltips?: [NzTSType, NzTSType] | null;
@@ -90,7 +90,7 @@ export class NzTextCopyComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnDestroy(): void {
     clearTimeout(this.copyId);
-    this.destroy$.next();
+    this.destroy$.next(true);
     this.destroy$.complete();
   }
 

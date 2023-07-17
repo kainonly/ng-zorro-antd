@@ -25,13 +25,14 @@ import { takeUntil } from 'rxjs/operators';
 import { gridResponsiveMap, NzBreakpointKey, NzBreakpointService } from 'ng-zorro-antd/core/services';
 import { IndexableObject } from 'ng-zorro-antd/core/types';
 
-export type NzJustify = 'start' | 'end' | 'center' | 'space-around' | 'space-between';
+export type NzJustify = 'start' | 'end' | 'center' | 'space-around' | 'space-between' | 'space-evenly';
 export type NzAlign = 'top' | 'middle' | 'bottom';
 
 @Directive({
   selector: '[nz-row],nz-row,nz-form-item',
   exportAs: 'nzRow',
   host: {
+    class: 'ant-row',
     '[class.ant-row-top]': `nzAlign === 'top'`,
     '[class.ant-row-middle]': `nzAlign === 'middle'`,
     '[class.ant-row-bottom]': `nzAlign === 'bottom'`,
@@ -40,6 +41,7 @@ export type NzAlign = 'top' | 'middle' | 'bottom';
     '[class.ant-row-center]': `nzJustify === 'center'`,
     '[class.ant-row-space-around]': `nzJustify === 'space-around'`,
     '[class.ant-row-space-between]': `nzJustify === 'space-between'`,
+    '[class.ant-row-space-evenly]': `nzJustify === 'space-evenly'`,
     '[class.ant-row-rtl]': `dir === "rtl"`
   }
 })
@@ -52,7 +54,7 @@ export class NzRowDirective implements OnInit, OnChanges, AfterViewInit, OnDestr
   readonly actualGutter$ = new ReplaySubject<[number | null, number | null]>(1);
 
   dir: Direction = 'ltr';
-  private readonly destroy$ = new Subject();
+  private readonly destroy$ = new Subject<boolean>();
 
   getGutter(): [number | null, number | null] {
     const results: [number | null, number | null] = [null, null];
@@ -96,10 +98,7 @@ export class NzRowDirective implements OnInit, OnChanges, AfterViewInit, OnDestr
     public platform: Platform,
     private breakpointService: NzBreakpointService,
     @Optional() private directionality: Directionality
-  ) {
-    // TODO: move to host after View Engine deprecation
-    this.elementRef.nativeElement.classList.add('ant-row');
-  }
+  ) {}
 
   ngOnInit(): void {
     this.dir = this.directionality.value;
@@ -128,7 +127,7 @@ export class NzRowDirective implements OnInit, OnChanges, AfterViewInit, OnDestr
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
+    this.destroy$.next(true);
     this.destroy$.complete();
   }
 }

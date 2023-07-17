@@ -27,16 +27,27 @@ import { NzAnchorComponent } from './anchor.component';
   exportAs: 'nzLink',
   preserveWhitespaces: false,
   template: `
-    <a #linkTitle (click)="goToClick($event)" href="{{ nzHref }}" class="ant-anchor-link-title" title="{{ titleStr }}">
+    <a
+      #linkTitle
+      class="ant-anchor-link-title"
+      [href]="nzHref"
+      [title]="titleStr"
+      [target]="nzTarget"
+      (click)="goToClick($event)"
+    >
       <span *ngIf="titleStr; else titleTpl || nzTemplate">{{ titleStr }}</span>
     </a>
     <ng-content></ng-content>
   `,
   encapsulation: ViewEncapsulation.None,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    class: 'ant-anchor-link'
+  }
 })
 export class NzAnchorLinkComponent implements OnInit, OnDestroy {
   @Input() nzHref = '#';
+  @Input() nzTarget?: string;
 
   titleStr: string | null = '';
   titleTpl?: TemplateRef<NzSafeAny>;
@@ -59,9 +70,7 @@ export class NzAnchorLinkComponent implements OnInit, OnDestroy {
     private anchorComp: NzAnchorComponent,
     private platform: Platform,
     private renderer: Renderer2
-  ) {
-    this.renderer.addClass(elementRef.nativeElement, 'ant-anchor-link');
-  }
+  ) {}
 
   ngOnInit(): void {
     this.anchorComp.registerLink(this);

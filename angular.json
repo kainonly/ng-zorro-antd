@@ -89,7 +89,8 @@
             "main": "./site/doc/main.server.ts",
             "tsConfig": "./site/doc/tsconfig.server.json",
             "sourceMap": true,
-            "optimization": false
+            "optimization": false,
+            "buildOptimizer": false
           },
           "configurations": {
             "production": {
@@ -210,6 +211,7 @@
     },
     "ng-zorro-antd-lib": {
       "root": "components",
+      "sourceRoot": "components",
       "projectType": "library",
       "prefix": "nz",
       "architect": {
@@ -229,8 +231,11 @@
           "defaultConfiguration": "production"
         },
         "test": {
-          "builder": "@angular-devkit/build-angular:karma",
+          "builder": "@angular-builders/custom-webpack:karma",
           "options": {
+            "customWebpackConfig": {
+              "path": "./custom-webpack-spec.config.js"
+            },
             "fileReplacements": [
               {
                 "replace": "components/core/environments/environment.ts",
@@ -264,7 +269,6 @@
       }
     }
   },
-  "defaultProject": "ng-zorro-antd-doc",
   "schematics": {
     "@schematics/angular:component": {
       "prefix": "app",
@@ -272,6 +276,12 @@
     },
     "@schematics/angular:directive": {
       "prefix": "app"
+    },
+    "@angular-eslint/schematics:application": {
+      "setParserOptionsProject": true
+    },
+    "@angular-eslint/schematics:library": {
+      "setParserOptionsProject": true
     }
   },
   "cli": {

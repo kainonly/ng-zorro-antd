@@ -180,6 +180,17 @@ describe('button', () => {
       // Previously, it would've caused `tick()` to be called 2 times, because 2 click events have been triggered.
       expect(spy).toHaveBeenCalledTimes(0);
     });
+
+    it('prevent default and stop propagation when the button state is loading', fakeAsync(() => {
+      testBed.component.nzLoading = true;
+      testBed.fixture.detectChanges();
+      const event = new MouseEvent('click');
+      const preventDefaultSpy = spyOn(event, 'preventDefault').and.callThrough();
+      const stopImmediatePropagationSpy = spyOn(event, 'stopImmediatePropagation').and.callThrough();
+      buttonElement.dispatchEvent(event);
+      expect(preventDefaultSpy).toHaveBeenCalledTimes(1);
+      expect(stopImmediatePropagationSpy).toHaveBeenCalledTimes(1);
+    }));
   });
 });
 
@@ -235,7 +246,7 @@ export class TestButtonComponent {
 @Component({
   template: `
     <button nz-button nzType="primary" (click)="load()" [nzLoading]="loading">
-      <i nz-icon nzType="poweroff"></i>
+      <span nz-icon nzType="poweroff"></span>
       {{ 'Click me!' }}
     </button>
   `
@@ -252,7 +263,7 @@ export class TestButtonBindingComponent {
   template: `
     <button nz-button>
       {{ title }}
-      <i nz-icon nzType="caret-down"></i>
+      <span nz-icon nzType="caret-down"></span>
     </button>
   `
 })
@@ -266,7 +277,7 @@ export class TestButtonWithIconComponent implements OnInit {
 @Component({
   template: `
     <button nz-button>
-      <i nz-icon nzType="caret-down"></i>
+      <span nz-icon nzType="caret-down"></span>
     </button>
   `
 })
@@ -275,11 +286,18 @@ export class TestButtonIconOnlyComponent {}
 @Component({
   template: `
     <button nz-button nzLoading>
-      <i nz-icon nzType="caret-down"></i>
+      <span nz-icon nzType="caret-down"></span>
     </button>
   `
 })
 export class TestButtonIconOnlyLoadingComponent {}
+
+@Component({
+  template: `<button nz-button [nzLoading]="nzLoading" (click)="buttonClick()">click me</button> `
+})
+export class TestButtonWithLoadingComponent {
+  @Input() nzLoading: boolean = false;
+}
 
 @Component({
   template: `

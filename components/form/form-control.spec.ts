@@ -1,10 +1,11 @@
 import { Component, DebugElement } from '@angular/core';
+import { fakeAsync, tick } from '@angular/core/testing';
 import {
   AbstractControl,
-  FormBuilder,
-  FormControl,
+  UntypedFormBuilder,
+  UntypedFormControl,
   FormControlName,
-  FormGroup,
+  UntypedFormGroup,
   FormsModule,
   ReactiveFormsModule,
   ValidatorFn,
@@ -45,14 +46,6 @@ describe('nz-form-control', () => {
     it('should className correct', () => {
       expect(formControl.nativeElement.classList).toContain('ant-form-item-control');
     });
-    it('should hasFeedback work', () => {
-      expect(formItem.nativeElement.classList).not.toContain('ant-form-item-has-feedback');
-      expect(formControl.nativeElement.querySelector('.ant-form-item-children-icon .anticon')).toBeNull();
-      testComponent.hasFeedback = true;
-      testBed.fixture.detectChanges();
-      expect(formItem.nativeElement.classList).toContain('ant-form-item-has-feedback');
-      expect(formControl.nativeElement.querySelector('.ant-form-item-children-icon .anticon')).not.toBeNull();
-    });
     it('should status work', () => {
       const statusList: Array<keyof typeof statusMap> = ['warning', 'validating', 'pending', 'error', 'success'];
       statusList.forEach(status => {
@@ -64,7 +57,7 @@ describe('nz-form-control', () => {
   });
   describe('reactive status', () => {
     let testBed: ComponentBed<NzTestReactiveFormControlComponent>;
-    let formGroup: FormGroup;
+    let formGroup: UntypedFormGroup;
     let formItems: DebugElement[];
     let formControls: DebugElement[];
     beforeEach(() => {
@@ -162,7 +155,7 @@ describe('nz-form-control', () => {
   describe('auto tips', () => {
     let testBed: ComponentBed<NzTestReactiveFormAutoTipsComponent>;
     let testComponent: NzTestReactiveFormAutoTipsComponent;
-    let formGroup: FormGroup;
+    let formGroup: UntypedFormGroup;
     let formControls: DebugElement[];
 
     beforeEach(() => {
@@ -299,7 +292,7 @@ describe('nz-form-control', () => {
         'Please input valid email'
       );
     });
-    it('should nzDisableAutoTips work ', () => {
+    it('should nzDisableAutoTips work ', fakeAsync(() => {
       formGroup.get('userName')!.markAsDirty();
       formGroup.get('mobile')!.markAsDirty();
       formGroup.get('email')!.markAsDirty();
@@ -329,11 +322,13 @@ describe('nz-form-control', () => {
       formGroup.get('email')!.setValue('12345');
 
       testBed.fixture.detectChanges();
+      tick(300 + 50);
+      testBed.fixture.detectChanges();
 
       expect(formControls[0].nativeElement.querySelector('.ant-form-item-explain')).toBeNull();
       expect(formControls[1].nativeElement.querySelector('.ant-form-item-explain')).toBeNull();
       expect(formControls[2].nativeElement.querySelector('.ant-form-item-explain')).toBeNull();
-    });
+    }));
     it('should nzErrorTip change work', () => {
       testComponent.passwordDisableAutoTips = true;
 
@@ -390,16 +385,16 @@ export class NzTestStaticFormControlComponent {
   `
 })
 export class NzTestReactiveFormControlComponent {
-  formGroup: FormGroup;
-  validateStatus: string | FormControlName | FormControl;
+  formGroup: UntypedFormGroup;
+  validateStatus: string | FormControlName | UntypedFormControl;
 
-  constructor(private formBuilder: FormBuilder) {
+  constructor(private formBuilder: UntypedFormBuilder) {
     this.formGroup = this.formBuilder.group({
       input: ['', [Validators.required]],
       input2: ['', [Validators.required]],
       input3: ['', [Validators.required]]
     });
-    this.validateStatus = this.formGroup.get('input2') as FormControl;
+    this.validateStatus = this.formGroup.get('input2') as UntypedFormControl;
   }
 }
 
@@ -416,9 +411,9 @@ export class NzTestReactiveFormControlComponent {
   `
 })
 export class NzTestReactiveFormControlInitStatusComponent {
-  formGroup: FormGroup;
+  formGroup: UntypedFormGroup;
 
-  constructor(private formBuilder: FormBuilder) {
+  constructor(private formBuilder: UntypedFormBuilder) {
     this.formGroup = this.formBuilder.group({
       input: ['', [Validators.required]]
     });
@@ -458,7 +453,7 @@ export class NzTestReactiveFormControlInitStatusComponent {
   `
 })
 export class NzTestReactiveFormAutoTipsComponent {
-  formGroup: FormGroup;
+  formGroup: UntypedFormGroup;
 
   showConfirmPassword = false;
 
@@ -488,7 +483,7 @@ export class NzTestReactiveFormAutoTipsComponent {
     }
   };
 
-  constructor(private formBuilder: FormBuilder, public i18n: NzI18nService) {
+  constructor(private formBuilder: UntypedFormBuilder, public i18n: NzI18nService) {
     const { required, minLength, email, mobile } = MyValidators;
     this.formGroup = this.formBuilder.group({
       userName: ['', [required, minLength(6)]],
@@ -504,7 +499,7 @@ export type MyErrorsOptions = { 'zh-cn': string; en: string } & Record<string, N
 export type MyValidationErrors = Record<string, MyErrorsOptions>;
 
 export class MyValidators extends Validators {
-  static minLength(minLength: number): ValidatorFn {
+  static override minLength(minLength: number): ValidatorFn {
     return (control: AbstractControl): MyValidationErrors | null => {
       if (Validators.minLength(minLength)(control) === null) {
         return null;

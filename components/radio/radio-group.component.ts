@@ -8,15 +8,14 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  ElementRef,
-  forwardRef,
   Input,
   OnChanges,
   OnDestroy,
   OnInit,
   Optional,
   SimpleChanges,
-  ViewEncapsulation
+  ViewEncapsulation,
+  forwardRef
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -45,6 +44,7 @@ export type NzRadioButtonStyle = 'outline' | 'solid';
     }
   ],
   host: {
+    class: 'ant-radio-group',
     '[class.ant-radio-group-large]': `nzSize === 'large'`,
     '[class.ant-radio-group-small]': `nzSize === 'small'`,
     '[class.ant-radio-group-solid]': `nzButtonStyle === 'solid'`,
@@ -55,7 +55,8 @@ export class NzRadioGroupComponent implements OnInit, ControlValueAccessor, OnDe
   static ngAcceptInputType_nzDisabled: BooleanInput;
 
   private value: NzSafeAny | null = null;
-  private destroy$ = new Subject();
+  private destroy$ = new Subject<boolean>();
+  private isNzDisableFirstChange: boolean = true;
   onChange: OnChangeType = () => {};
   onTouched: OnTouchedType = () => {};
   @Input() @InputBoolean() nzDisabled = false;
@@ -68,12 +69,8 @@ export class NzRadioGroupComponent implements OnInit, ControlValueAccessor, OnDe
   constructor(
     private cdr: ChangeDetectorRef,
     private nzRadioService: NzRadioService,
-    private elementRef: ElementRef,
     @Optional() private directionality: Directionality
-  ) {
-    // TODO: move to host after View Engine deprecation
-    this.elementRef.nativeElement.classList.add('ant-radio-group');
-  }
+  ) {}
 
   ngOnInit(): void {
     this.nzRadioService.selected$.pipe(takeUntil(this.destroy$)).subscribe(value => {
@@ -105,7 +102,7 @@ export class NzRadioGroupComponent implements OnInit, ControlValueAccessor, OnDe
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
+    this.destroy$.next(true);
     this.destroy$.complete();
   }
 
@@ -124,8 +121,9 @@ export class NzRadioGroupComponent implements OnInit, ControlValueAccessor, OnDe
   }
 
   setDisabledState(isDisabled: boolean): void {
-    this.nzDisabled = isDisabled;
-    this.nzRadioService.setDisabled(isDisabled);
+    this.nzDisabled = (this.isNzDisableFirstChange && this.nzDisabled) || isDisabled;
+    this.isNzDisableFirstChange = false;
+    this.nzRadioService.setDisabled(this.nzDisabled);
     this.cdr.markForCheck();
   }
 }

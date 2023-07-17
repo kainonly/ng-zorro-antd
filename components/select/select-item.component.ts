@@ -6,7 +6,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   EventEmitter,
   Input,
   Output,
@@ -26,10 +25,11 @@ import { NzSafeAny } from 'ng-zorro-antd/core/types';
       <ng-template #labelTemplate>{{ label }}</ng-template>
     </ng-container>
     <span *ngIf="deletable && !disabled" class="ant-select-selection-item-remove" (click)="onDelete($event)">
-      <i nz-icon nzType="close" *ngIf="!removeIcon; else removeIcon"></i>
+      <span nz-icon nzType="close" *ngIf="!removeIcon; else removeIcon"></span>
     </span>
   `,
   host: {
+    class: 'ant-select-selection-item',
     '[attr.title]': 'label',
     '[class.ant-select-selection-item-disabled]': 'disabled'
   }
@@ -43,10 +43,7 @@ export class NzSelectItemComponent {
   @Input() contentTemplateOutlet: string | TemplateRef<NzSafeAny> | null = null;
   @Output() readonly delete = new EventEmitter<MouseEvent>();
 
-  constructor(private elementRef: ElementRef) {
-    // TODO: move to host after View Engine deprecation
-    this.elementRef.nativeElement.classList.add('ant-select-selection-item');
-  }
+  constructor() {}
 
   onDelete(e: MouseEvent): void {
     e.preventDefault();

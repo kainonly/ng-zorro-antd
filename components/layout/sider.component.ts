@@ -10,7 +10,6 @@ import {
   ChangeDetectorRef,
   Component,
   ContentChild,
-  ElementRef,
   EventEmitter,
   Input,
   OnChanges,
@@ -26,7 +25,7 @@ import { takeUntil } from 'rxjs/operators';
 
 import { NzBreakpointKey, NzBreakpointService, siderResponsiveMap } from 'ng-zorro-antd/core/services';
 import { BooleanInput } from 'ng-zorro-antd/core/types';
-import { inNextTick, InputBoolean, toCssPixel } from 'ng-zorro-antd/core/util';
+import { InputBoolean, inNextTick, toCssPixel } from 'ng-zorro-antd/core/util';
 import { NzMenuDirective } from 'ng-zorro-antd/menu';
 
 @Component({
@@ -54,10 +53,12 @@ import { NzMenuDirective } from 'ng-zorro-antd/menu';
     ></div>
   `,
   host: {
+    class: 'ant-layout-sider',
     '[class.ant-layout-sider-zero-width]': `nzCollapsed && nzCollapsedWidth === 0`,
     '[class.ant-layout-sider-light]': `nzTheme === 'light'`,
     '[class.ant-layout-sider-dark]': `nzTheme === 'dark'`,
     '[class.ant-layout-sider-collapsed]': `nzCollapsed`,
+    '[class.ant-layout-sider-has-trigger]': `nzCollapsible && nzTrigger !== null`,
     '[style.flex]': 'flexSetting',
     '[style.maxWidth]': 'widthSetting',
     '[style.minWidth]': 'widthSetting',
@@ -69,7 +70,7 @@ export class NzSiderComponent implements OnInit, OnDestroy, OnChanges, AfterCont
   static ngAcceptInputType_nzCollapsible: BooleanInput;
   static ngAcceptInputType_nzCollapsed: BooleanInput;
 
-  private destroy$ = new Subject();
+  private destroy$ = new Subject<boolean>();
   @ContentChild(NzMenuDirective) nzMenuDirective: NzMenuDirective | null = null;
   @Output() readonly nzCollapsedChange = new EventEmitter();
   @Input() nzWidth: string | number = 200;
@@ -110,12 +111,8 @@ export class NzSiderComponent implements OnInit, OnDestroy, OnChanges, AfterCont
   constructor(
     private platform: Platform,
     private cdr: ChangeDetectorRef,
-    private breakpointService: NzBreakpointService,
-    private elementRef: ElementRef
-  ) {
-    // TODO: move to host after View Engine deprecation
-    this.elementRef.nativeElement.classList.add('ant-layout-sider');
-  }
+    private breakpointService: NzBreakpointService
+  ) {}
 
   ngOnInit(): void {
     this.updateStyleMap();
@@ -152,7 +149,7 @@ export class NzSiderComponent implements OnInit, OnDestroy, OnChanges, AfterCont
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
+    this.destroy$.next(true);
     this.destroy$.complete();
   }
 }

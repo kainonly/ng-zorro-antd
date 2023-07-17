@@ -40,14 +40,14 @@ import { InputBoolean } from 'ng-zorro-antd/core/util';
     </div>
 
     <ng-template #defaultCharacter>
-      <i nz-icon nzType="star" nzTheme="fill"></i>
+      <span nz-icon nzType="star" nzTheme="fill"></span>
     </ng-template>
   `
 })
 export class NzRateItemComponent {
   static ngAcceptInputType_allowHalf: BooleanInput;
 
-  @Input() character!: TemplateRef<void>;
+  @Input() character!: TemplateRef<{ $implicit: number }>;
   @Input() index = 0;
   @Input() @InputBoolean() allowHalf: boolean = false;
   @Output() readonly itemHover = new EventEmitter<boolean>();

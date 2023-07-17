@@ -14,7 +14,12 @@ describe('alert', () => {
     waitForAsync(() => {
       TestBed.configureTestingModule({
         imports: [BidiModule, NzAlertModule, NoopAnimationsModule, NzIconTestModule],
-        declarations: [NzDemoTestBasicComponent, NzDemoTestBannerComponent, NzTestAlertRtlComponent]
+        declarations: [
+          NzDemoTestBasicComponent,
+          NzDemoTestBannerComponent,
+          NzTestAlertRtlComponent,
+          NzTestAlertCustomIconComponent
+        ]
       });
       TestBed.compileComponents();
     })
@@ -93,8 +98,10 @@ describe('alert', () => {
       testComponent.showIcon = true;
       testComponent.iconType = 'lock';
       fixture.detectChanges();
-      expect(alert.nativeElement.querySelector('.ant-alert-icon').classList).toContain('anticon');
-      expect(alert.nativeElement.querySelector('.ant-alert-icon').classList).toContain('anticon-lock');
+      expect(alert.nativeElement.querySelector('.ant-alert-icon').firstElementChild.classList).toContain('anticon');
+      expect(alert.nativeElement.querySelector('.ant-alert-icon').firstElementChild.classList).toContain(
+        'anticon-lock'
+      );
     });
     it('should type work', () => {
       const listOfType = ['success', 'info', 'warning', 'error'];
@@ -103,6 +110,12 @@ describe('alert', () => {
         fixture.detectChanges();
         expect(alert.nativeElement.querySelector('.ant-alert').classList).toContain(`ant-alert-${type}`);
       });
+    });
+    it('should action work', () => {
+      fixture.detectChanges();
+      testComponent.action = testComponent.template;
+      fixture.detectChanges();
+      expect(alert.nativeElement.querySelector('.ant-alert-action').classList).not.toBeNull();
     });
   });
   describe('banner alert', () => {
@@ -133,6 +146,15 @@ describe('alert', () => {
       expect(alert.nativeElement.firstElementChild!.classList).not.toContain('ant-alert-rtl');
     });
   });
+  describe('custom icon', () => {
+    it('should custom icon work', () => {
+      const fixture = TestBed.createComponent(NzTestAlertCustomIconComponent);
+      const alert = fixture.debugElement.query(By.directive(NzAlertComponent));
+      fixture.detectChanges();
+      expect(alert.nativeElement.querySelector('.ant-alert-icon')).toBeDefined();
+      expect(alert.nativeElement.querySelector('.ant-alert-icon').firstElementChild).not.toContain('anticon');
+    });
+  });
 });
 
 @Component({
@@ -149,12 +171,14 @@ describe('alert', () => {
       [nzShowIcon]="showIcon"
       [nzIconType]="iconType"
       [nzType]="type"
+      [nzAction]="action"
       (nzOnClose)="onClose($event)"
     ></nz-alert>
   `
 })
 export class NzDemoTestBasicComponent {
   @ViewChild('template', { static: false }) template!: TemplateRef<void>;
+  action?: string | TemplateRef<void>;
   banner = false;
   closeable = false;
   closeText?: string | TemplateRef<void>;
@@ -182,3 +206,20 @@ export class NzTestAlertRtlComponent {
   @ViewChild(Dir) dir!: Dir;
   direction = 'rtl';
 }
+
+@Component({
+  template: `
+    <nz-alert
+      nzType="success"
+      nzMessage="Success Tips"
+      nzDescription="Detailed description and advices about successful copywriting."
+      [nzIcon]="customIconTemplate"
+      nzShowIcon
+    ></nz-alert>
+
+    <ng-template #customIconTemplate>
+      <div> S </div>
+    </ng-template>
+  `
+})
+export class NzTestAlertCustomIconComponent {}

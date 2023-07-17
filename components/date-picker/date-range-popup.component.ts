@@ -8,8 +8,10 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  ElementRef,
   EventEmitter,
   Input,
+  NgZone,
   OnChanges,
   OnDestroy,
   OnInit,
@@ -18,7 +20,7 @@ import {
   TemplateRef,
   ViewEncapsulation
 } from '@angular/core';
-import { merge, Subject } from 'rxjs';
+import { fromEvent, merge, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 import {
@@ -54,8 +56,8 @@ import { getTimeConfig, isAllowedDate, PREFIX_CLASS } from './util';
   template: `
     <ng-container *ngIf="isRange; else singlePanel">
       <div class="{{ prefixCls }}-range-wrapper {{ prefixCls }}-date-range-wrapper">
-        <div class="{{ prefixCls }}-range-arrow" [style.left.px]="datePickerService?.arrowLeft"></div>
-        <div class="{{ prefixCls }}-panel-container">
+        <div class="{{ prefixCls }}-range-arrow" [style]="arrowPosition"></div>
+        <div class="{{ prefixCls }}-panel-container {{ showWeek ? prefixCls + '-week-number' : '' }}">
           <div class="{{ prefixCls }}-panels">
             <ng-container *ngIf="hasTimePicker; else noTimePicker">
               <ng-container
@@ -139,10 +141,7 @@ import { getTimeConfig, isAllowedDate, PREFIX_CLASS } from './util';
         <span class="ant-tag ant-tag-blue">{{ name }}</span>
       </li>
     </ng-template>
-  `,
-  host: {
-    '(mousedown)': 'onMousedown($event)'
-  }
+  `
 })
 export class DateRangePopupComponent implements OnInit, OnChanges, OnDestroy {
   @Input() isRange!: boolean;
@@ -170,7 +169,7 @@ export class DateRangePopupComponent implements OnInit, OnChanges, OnDestroy {
   timeOptions: SupportTimeOptions | SupportTimeOptions[] | null = null;
   hoverValue: SingleValue[] = []; // Range ONLY
   checkedPartArr: boolean[] = [false, false];
-  destroy$ = new Subject();
+  destroy$ = new Subject<boolean>();
 
   get hasTimePicker(): boolean {
     return !!this.showTime;
@@ -180,7 +179,18 @@ export class DateRangePopupComponent implements OnInit, OnChanges, OnDestroy {
     return this.showToday || this.hasTimePicker || !!this.extraFooter || !!this.ranges;
   }
 
-  constructor(public datePickerService: DatePickerService, public cdr: ChangeDetectorRef) {}
+  get arrowPosition(): { left?: string; right?: string } {
+    return this.dir === 'rtl'
+      ? { right: `${this.datePickerService?.arrowLeft}px` }
+      : { left: `${this.datePickerService?.arrowLeft}px` };
+  }
+
+  constructor(
+    public datePickerService: DatePickerService,
+    public cdr: ChangeDetectorRef,
+    private ngZone: NgZone,
+    private host: ElementRef<HTMLElement>
+  ) {}
 
   ngOnInit(): void {
     merge(this.datePickerService.valueChange$, this.datePickerService.inputPartChange$)
@@ -189,6 +199,12 @@ export class DateRangePopupComponent implements OnInit, OnChanges, OnDestroy {
         this.updateActiveDate();
         this.cdr.markForCheck();
       });
+
+    this.ngZone.runOutsideAngular(() => {
+      fromEvent(this.host.nativeElement, 'mousedown')
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(event => event.preventDefault());
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -207,7 +223,7 @@ export class DateRangePopupComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
+    this.destroy$.next(true);
     this.destroy$.complete();
   }
 
@@ -220,15 +236,6 @@ export class DateRangePopupComponent implements OnInit, OnChanges, OnDestroy {
       this.hasTimePicker,
       this.getPanelMode(this.endPanelMode) as NormalizedMode
     );
-  }
-
-  /**
-   * Prevent input losing focus when click panel
-   *
-   * @param event
-   */
-  onMousedown(event: MouseEvent): void {
-    event.preventDefault();
   }
 
   onClickOk(): void {
@@ -297,7 +304,7 @@ export class DateRangePopupComponent implements OnInit, OnChanges, OnDestroy {
       const newValue = this.overrideHms(value, this.datePickerService.value as CandyDate);
       this.datePickerService.setValue(newValue); // If not select a date currently, use today
     }
-    this.datePickerService.inputPartChange$.next();
+    this.datePickerService.inputPartChange$.next(null);
     this.buildTimeOptions();
   }
 
@@ -355,12 +362,14 @@ export class DateRangePopupComponent implements OnInit, OnChanges, OnDestroy {
       this.datePickerService.inputPartChange$.next(nextPart);
     } else {
       this.datePickerService.setValue(value);
-      this.datePickerService.inputPartChange$.next();
+      this.datePickerService.inputPartChange$.next(null);
 
       if (emitValue && this.isAllowed(value)) {
         this.datePickerService.emitValue$.next();
       }
     }
+
+    this.buildTimeOptions();
   }
 
   reversedPart(part: RangePartType): RangePartType {

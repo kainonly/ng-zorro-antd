@@ -22,7 +22,7 @@ import { NG_VALUE_ACCESSOR } from '@angular/forms';
 import { BehaviorSubject, combineLatest, fromEvent, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, map, takeUntil } from 'rxjs/operators';
 
-import { editor, IDisposable } from 'monaco-editor';
+import type { editor, IDisposable } from 'monaco-editor';
 
 import { warn } from 'ng-zorro-antd/core/logger';
 import { BooleanInput, NzSafeAny, OnChangeType, OnTouchedType } from 'ng-zorro-antd/core/types';
@@ -32,9 +32,9 @@ import { NzCodeEditorService } from './code-editor.service';
 import { DiffEditorOptions, EditorOptions, JoinedEditorOptions, NzEditorMode } from './typings';
 
 // Import types from monaco editor.
-import ITextModel = editor.ITextModel;
-import IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
-import IStandaloneDiffEditor = editor.IStandaloneDiffEditor;
+type ITextModel = editor.ITextModel;
+type IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
+type IStandaloneDiffEditor = editor.IStandaloneDiffEditor;
 
 declare const monaco: NzSafeAny;
 
@@ -104,7 +104,11 @@ export class NzCodeEditorComponent implements OnDestroy, AfterViewInit {
     if (!this.platform.isBrowser) {
       return;
     }
-    this.nzCodeEditorService.requestToInit().subscribe(option => this.setup(option));
+
+    this.nzCodeEditorService
+      .requestToInit()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(option => this.setup(option));
   }
 
   ngOnDestroy(): void {
@@ -144,19 +148,30 @@ export class NzCodeEditorComponent implements OnDestroy, AfterViewInit {
   }
 
   private setup(option: JoinedEditorOptions): void {
-    inNextTick().subscribe(() => {
-      this.editorOptionCached = option;
-      this.registerOptionChanges();
-      this.initMonacoEditorInstance();
-      this.registerResizeChange();
-      this.setValue();
+    // The `setup()` is invoked when the Monaco editor is loaded. This may happen asynchronously for the first
+    // time, and it'll always happen synchronously afterwards. The first `setup()` invokation is outside the Angular
+    // zone, but further invokations will happen within the Angular zone. We call the `setModel()` on the editor
+    // instance, which tells Monaco to add event listeners lazily internally (`mousemove`, `mouseout`, etc.).
+    // We should avoid adding them within the Angular zone since this will drastically affect the performance.
+    this.ngZone.runOutsideAngular(() =>
+      inNextTick()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(() => {
+          this.editorOptionCached = option;
+          this.registerOptionChanges();
+          this.initMonacoEditorInstance();
+          this.registerResizeChange();
+          this.setValue();
 
-      if (!this.nzFullControl) {
-        this.setValueEmitter();
-      }
+          if (!this.nzFullControl) {
+            this.setValueEmitter();
+          }
 
-      this.nzEditorInitialized.emit(this.editorInstance!);
-    });
+          if (this.nzEditorInitialized.observers.length) {
+            this.ngZone.run(() => this.nzEditorInitialized.emit(this.editorInstance!));
+          }
+        })
+    );
   }
 
   private registerOptionChanges(): void {

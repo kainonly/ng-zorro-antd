@@ -37,16 +37,16 @@ import { NzTreeNode, NzTreeNodeOptions } from 'ng-zorro-antd/core/tree';
           [class.ant-tree-iconEle]="!selectMode"
           [class.ant-tree-icon__customize]="!selectMode"
         >
-          <i nz-icon *ngIf="icon" [nzType]="icon"></i>
+          <span nz-icon *ngIf="icon" [nzType]="icon"></span>
         </span>
       </span>
       <span class="ant-tree-title" [innerHTML]="title | nzHighlight: matchedValue:'i':'font-highlight'"></span>
-      <nz-tree-drop-indicator
-        *ngIf="showIndicator"
-        [dropPosition]="dragPosition"
-        [level]="context.level"
-      ></nz-tree-drop-indicator>
     </ng-container>
+    <nz-tree-drop-indicator
+      *ngIf="showIndicator"
+      [dropPosition]="dragPosition"
+      [level]="context.level"
+    ></nz-tree-drop-indicator>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   preserveWhitespaces: false,

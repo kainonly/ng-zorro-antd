@@ -88,7 +88,8 @@ import { NzSelectItemInterface, NzSelectModeType, NzSelectTopControlItemType } f
       </ng-container>
     </ng-container>
     <nz-select-placeholder *ngIf="isShowPlaceholder" [placeholder]="placeHolder"></nz-select-placeholder>
-  `
+  `,
+  host: { class: 'ant-select-selector' }
 })
 export class NzSelectTopControlComponent implements OnChanges, OnInit, OnDestroy {
   @Input() nzId: string | null = null;
@@ -137,7 +138,7 @@ export class NzSelectTopControlComponent implements OnChanges, OnInit, OnDestroy
   }
 
   tokenSeparate(inputValue: string, tokenSeparators: string[]): void {
-    const includesSeparators = (str: string | string[], separators: string[]): boolean => {
+    const includesSeparators = (str: string, separators: string[]): boolean => {
       // eslint-disable-next-line @typescript-eslint/prefer-for-of
       for (let i = 0; i < separators.length; ++i) {
         if (str.lastIndexOf(separators[i]) > 0) {
@@ -146,9 +147,9 @@ export class NzSelectTopControlComponent implements OnChanges, OnInit, OnDestroy
       }
       return false;
     };
-    const splitBySeparators = (str: string | string[], separators: string[]): string[] => {
+    const splitBySeparators = (str: string, separators: string[]): string[] => {
       const reg = new RegExp(`[${separators.join()}]`);
-      const array = (str as string).split(reg).filter(token => token);
+      const array = str.split(reg).filter(token => token);
       return [...new Set(array)];
     };
     if (
@@ -195,10 +196,7 @@ export class NzSelectTopControlComponent implements OnChanges, OnInit, OnDestroy
     private elementRef: ElementRef<HTMLElement>,
     private ngZone: NgZone,
     @Host() @Optional() public noAnimation: NzNoAnimationDirective | null
-  ) {
-    // TODO: move to host after View Engine deprecation
-    this.elementRef.nativeElement.classList.add('ant-select-selector');
-  }
+  ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     const { listOfTopItem, maxTagCount, customTemplate, maxTagPlaceholder } = changes;

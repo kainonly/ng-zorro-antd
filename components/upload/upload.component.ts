@@ -4,12 +4,16 @@
  */
 
 import { Direction, Directionality } from '@angular/cdk/bidi';
+import { DOCUMENT } from '@angular/common';
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   EventEmitter,
+  Inject,
   Input,
+  NgZone,
   OnChanges,
   OnDestroy,
   OnInit,
@@ -19,7 +23,7 @@ import {
   ViewChild,
   ViewEncapsulation
 } from '@angular/core';
-import { Observable, of, Subject, Subscription } from 'rxjs';
+import { Observable, Subject, Subscription, fromEvent, of } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 
 import { BooleanInput, NumberInput, NzSafeAny } from 'ng-zorro-antd/core/types';
@@ -52,7 +56,7 @@ import { NzUploadListComponent } from './upload-list.component';
     '[class.ant-upload-picture-card-wrapper]': 'nzListType === "picture-card"'
   }
 })
-export class NzUploadComponent implements OnInit, OnChanges, OnDestroy {
+export class NzUploadComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
   static ngAcceptInputType_nzLimit: NumberInput;
   static ngAcceptInputType_nzSize: NumberInput;
   static ngAcceptInputType_nzDirectory: BooleanInput;
@@ -113,7 +117,7 @@ export class NzUploadComponent implements OnInit, OnChanges, OnDestroy {
   @Input() nzTransformFile?: (file: NzUploadFile) => NzUploadTransformFileType;
   @Input() nzDownload?: (file: NzUploadFile) => void;
   @Input() nzIconRender: NzIconRenderTemplate | null = null;
-  @Input() nzFileListRender: TemplateRef<void> | null = null;
+  @Input() nzFileListRender: TemplateRef<{ $implicit: NzUploadFile[] }> | null = null;
 
   @Output() readonly nzChange: EventEmitter<NzUploadChangeParam> = new EventEmitter<NzUploadChangeParam>();
   @Output() readonly nzFileListChange: EventEmitter<NzUploadFile[]> = new EventEmitter<NzUploadFile[]>();
@@ -175,6 +179,8 @@ export class NzUploadComponent implements OnInit, OnChanges, OnDestroy {
   // #endregion
 
   constructor(
+    private ngZone: NgZone,
+    @Inject(DOCUMENT) private document: NzSafeAny,
     private cdr: ChangeDetectorRef,
     private i18n: NzI18nService,
     @Optional() private directionality: Directionality
@@ -342,6 +348,18 @@ export class NzUploadComponent implements OnInit, OnChanges, OnDestroy {
       this.locale = this.i18n.getLocaleData('Upload');
       this.detectChangesList();
     });
+  }
+
+  ngAfterViewInit(): void {
+    // fix firefox drop open new tab
+    this.ngZone.runOutsideAngular(() =>
+      fromEvent<MouseEvent>(this.document.body, 'drop')
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(event => {
+          event.preventDefault();
+          event.stopPropagation();
+        })
+    );
   }
 
   ngOnChanges(): void {

@@ -26,6 +26,8 @@ import { PREFIX } from 'ng-zorro-antd/core/logger';
 import { BooleanInput } from 'ng-zorro-antd/core/types';
 import { InputBoolean } from 'ng-zorro-antd/core/util';
 
+import { NzBreadcrumb } from './breadcrumb';
+
 export interface BreadcrumbOption {
   label: string;
   params: Params;
@@ -38,6 +40,7 @@ export interface BreadcrumbOption {
   selector: 'nz-breadcrumb',
   exportAs: 'nzBreadcrumb',
   preserveWhitespaces: false,
+  providers: [{ provide: NzBreadcrumb, useExisting: NzBreadCrumbComponent }],
   template: `
     <ng-content></ng-content>
     <ng-container *ngIf="nzAutoGenerate && breadcrumbs.length">
@@ -45,9 +48,12 @@ export interface BreadcrumbOption {
         <a [attr.href]="breadcrumb.url" (click)="navigate(breadcrumb.url, $event)">{{ breadcrumb.label }}</a>
       </nz-breadcrumb-item>
     </ng-container>
-  `
+  `,
+  host: {
+    class: 'ant-breadcrumb'
+  }
 })
-export class NzBreadCrumbComponent implements OnInit, OnDestroy {
+export class NzBreadCrumbComponent implements OnInit, OnDestroy, NzBreadcrumb {
   static ngAcceptInputType_nzAutoGenerate: BooleanInput;
 
   @Input() @InputBoolean() nzAutoGenerate = false;
@@ -66,9 +72,7 @@ export class NzBreadCrumbComponent implements OnInit, OnDestroy {
     private elementRef: ElementRef,
     private renderer: Renderer2,
     @Optional() private directionality: Directionality
-  ) {
-    renderer.addClass(elementRef.nativeElement, 'ant-breadcrumb');
-  }
+  ) {}
 
   ngOnInit(): void {
     if (this.nzAutoGenerate) {

@@ -50,9 +50,14 @@ const NZ_CONFIG_MODULE_NAME: NzConfigKey = 'alert';
       [@slideAlertMotion]
       (@slideAlertMotion.done)="onFadeAnimationDone()"
     >
-      <ng-container *ngIf="nzShowIcon">
-        <i nz-icon class="ant-alert-icon" [nzType]="nzIconType || inferredIconType" [nzTheme]="iconTheme"></i>
-      </ng-container>
+      <div *ngIf="nzShowIcon" class="ant-alert-icon">
+        <ng-container *ngIf="nzIcon; else iconDefaultTemplate">
+          <ng-container *nzStringTemplateOutlet="nzIcon"></ng-container>
+        </ng-container>
+        <ng-template #iconDefaultTemplate>
+          <span nz-icon [nzType]="nzIconType || inferredIconType" [nzTheme]="iconTheme"></span>
+        </ng-template>
+      </div>
       <div class="ant-alert-content" *ngIf="nzMessage || nzDescription">
         <span class="ant-alert-message" *ngIf="nzMessage">
           <ng-container *nzStringTemplateOutlet="nzMessage">{{ nzMessage }}</ng-container>
@@ -60,6 +65,9 @@ const NZ_CONFIG_MODULE_NAME: NzConfigKey = 'alert';
         <span class="ant-alert-description" *ngIf="nzDescription">
           <ng-container *nzStringTemplateOutlet="nzDescription">{{ nzDescription }}</ng-container>
         </span>
+      </div>
+      <div class="ant-alert-action" *ngIf="nzAction">
+        <ng-container *nzStringTemplateOutlet="nzAction">{{ nzAction }}</ng-container>
       </div>
       <button
         type="button"
@@ -69,7 +77,7 @@ const NZ_CONFIG_MODULE_NAME: NzConfigKey = 'alert';
         (click)="closeAlert()"
       >
         <ng-template #closeDefaultTemplate>
-          <i nz-icon nzType="close"></i>
+          <span nz-icon nzType="close"></span>
         </ng-template>
         <ng-container *ngIf="nzCloseText; else closeDefaultTemplate">
           <ng-container *nzStringTemplateOutlet="nzCloseText">
@@ -90,6 +98,7 @@ export class NzAlertComponent implements OnChanges, OnDestroy, OnInit {
   static ngAcceptInputType_nzBanner: BooleanInput;
   static ngAcceptInputType_nzNoAnimation: BooleanInput;
 
+  @Input() nzAction: string | TemplateRef<void> | null = null;
   @Input() nzCloseText: string | TemplateRef<void> | null = null;
   @Input() nzIconType: string | null = null;
   @Input() nzMessage: string | TemplateRef<void> | null = null;
@@ -99,6 +108,7 @@ export class NzAlertComponent implements OnChanges, OnDestroy, OnInit {
   @Input() @WithConfig() @InputBoolean() nzShowIcon: boolean = false;
   @Input() @InputBoolean() nzBanner = false;
   @Input() @InputBoolean() nzNoAnimation = false;
+  @Input() nzIcon: string | TemplateRef<void> | null = null;
   @Output() readonly nzOnClose = new EventEmitter<boolean>();
   closed = false;
   iconTheme: 'outline' | 'fill' = 'fill';
@@ -106,7 +116,7 @@ export class NzAlertComponent implements OnChanges, OnDestroy, OnInit {
   dir: Direction = 'ltr';
   private isTypeSet = false;
   private isShowIconSet = false;
-  private destroy$ = new Subject();
+  private destroy$ = new Subject<boolean>();
 
   constructor(
     public nzConfigService: NzConfigService,
@@ -175,7 +185,7 @@ export class NzAlertComponent implements OnChanges, OnDestroy, OnInit {
     }
   }
   ngOnDestroy(): void {
-    this.destroy$.next();
+    this.destroy$.next(true);
     this.destroy$.complete();
   }
 }

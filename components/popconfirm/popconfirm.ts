@@ -9,8 +9,8 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  ComponentFactory,
   ComponentFactoryResolver,
+  ComponentRef,
   Directive,
   ElementRef,
   EventEmitter,
@@ -27,15 +27,15 @@ import {
   ViewContainerRef,
   ViewEncapsulation
 } from '@angular/core';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Observable, Subject } from 'rxjs';
+import { finalize, first, takeUntil } from 'rxjs/operators';
 
 import { NzButtonType } from 'ng-zorro-antd/button';
 import { zoomBigMotion } from 'ng-zorro-antd/core/animation';
 import { NzConfigKey, NzConfigService, WithConfig } from 'ng-zorro-antd/core/config';
 import { NzNoAnimationDirective } from 'ng-zorro-antd/core/no-animation';
 import { BooleanInput, NgStyleInterface, NzSafeAny, NzTSType } from 'ng-zorro-antd/core/types';
-import { InputBoolean } from 'ng-zorro-antd/core/util';
+import { InputBoolean, wrapIntoObservable } from 'ng-zorro-antd/core/util';
 import { NzTooltipBaseDirective, NzToolTipComponent, NzTooltipTrigger, PropertyMapping } from 'ng-zorro-antd/tooltip';
 
 export type NzAutoFocusType = null | 'ok' | 'cancel';
@@ -51,25 +51,27 @@ const NZ_CONFIG_MODULE_NAME: NzConfigKey = 'popconfirm';
 })
 export class NzPopconfirmDirective extends NzTooltipBaseDirective {
   readonly _nzModuleName: NzConfigKey = NZ_CONFIG_MODULE_NAME;
+  static ngAcceptInputType_nzOkDanger: BooleanInput;
   static ngAcceptInputType_nzCondition: BooleanInput;
   static ngAcceptInputType_nzPopconfirmShowArrow: BooleanInput;
   static ngAcceptInputType_nzPopconfirmArrowPointAtCenter: BooleanInput;
 
-  @Input('nzPopconfirmArrowPointAtCenter') @InputBoolean() arrowPointAtCenter?: boolean;
-  @Input('nzPopconfirmTitle') title?: NzTSType;
-  @Input('nz-popconfirm') directiveTitle?: NzTSType | null;
-  @Input('nzPopconfirmTrigger') trigger?: NzTooltipTrigger = 'click';
-  @Input('nzPopconfirmPlacement') placement?: string | string[] = 'top';
-  @Input('nzPopconfirmOrigin') origin?: ElementRef<HTMLElement>;
-  @Input('nzPopconfirmMouseEnterDelay') mouseEnterDelay?: number;
-  @Input('nzPopconfirmMouseLeaveDelay') mouseLeaveDelay?: number;
-  @Input('nzPopconfirmOverlayClassName') overlayClassName?: string;
-  @Input('nzPopconfirmOverlayStyle') overlayStyle?: NgStyleInterface;
-  @Input('nzPopconfirmVisible') visible?: boolean;
+  @Input('nzPopconfirmArrowPointAtCenter') @InputBoolean() override arrowPointAtCenter?: boolean;
+  @Input('nzPopconfirmTitle') override title?: NzTSType;
+  @Input('nz-popconfirm') override directiveTitle?: NzTSType | null;
+  @Input('nzPopconfirmTrigger') override trigger?: NzTooltipTrigger = 'click';
+  @Input('nzPopconfirmPlacement') override placement?: string | string[] = 'top';
+  @Input('nzPopconfirmOrigin') override origin?: ElementRef<HTMLElement>;
+  @Input('nzPopconfirmMouseEnterDelay') override mouseEnterDelay?: number;
+  @Input('nzPopconfirmMouseLeaveDelay') override mouseLeaveDelay?: number;
+  @Input('nzPopconfirmOverlayClassName') override overlayClassName?: string;
+  @Input('nzPopconfirmOverlayStyle') override overlayStyle?: NgStyleInterface;
+  @Input('nzPopconfirmVisible') override visible?: boolean;
   @Input() nzOkText?: string;
   @Input() nzOkType?: string;
-  @Input() nzOkDanger?: boolean;
+  @Input() @InputBoolean() nzOkDanger?: boolean;
   @Input() nzCancelText?: string;
+  @Input() nzBeforeConfirm?: () => Observable<boolean> | Promise<boolean> | boolean;
   @Input() nzIcon?: string | TemplateRef<void>;
   @Input() @InputBoolean() nzCondition: boolean = false;
   @Input() @InputBoolean() nzPopconfirmShowArrow: boolean = true;
@@ -77,19 +79,20 @@ export class NzPopconfirmDirective extends NzTooltipBaseDirective {
   @Input() @WithConfig() nzAutofocus: NzAutoFocusType = null;
 
   // eslint-disable-next-line @angular-eslint/no-output-rename
-  @Output('nzPopconfirmVisibleChange') readonly visibleChange = new EventEmitter<boolean>();
+  @Output('nzPopconfirmVisibleChange') override readonly visibleChange = new EventEmitter<boolean>();
   @Output() readonly nzOnCancel = new EventEmitter<void>();
   @Output() readonly nzOnConfirm = new EventEmitter<void>();
 
-  protected readonly componentFactory: ComponentFactory<NzPopconfirmComponent> =
-    this.resolver.resolveComponentFactory(NzPopconfirmComponent);
+  protected override readonly componentRef: ComponentRef<NzPopconfirmComponent> =
+    this.hostView.createComponent(NzPopconfirmComponent);
 
-  protected getProxyPropertyMap(): PropertyMapping {
+  protected override getProxyPropertyMap(): PropertyMapping {
     return {
       nzOkText: ['nzOkText', () => this.nzOkText],
       nzOkType: ['nzOkType', () => this.nzOkType],
       nzOkDanger: ['nzOkDanger', () => this.nzOkDanger],
       nzCancelText: ['nzCancelText', () => this.nzCancelText],
+      nzBeforeConfirm: ['nzBeforeConfirm', () => this.nzBeforeConfirm],
       nzCondition: ['nzCondition', () => this.nzCondition],
       nzIcon: ['nzIcon', () => this.nzIcon],
       nzPopconfirmShowArrow: ['nzPopconfirmShowArrow', () => this.nzPopconfirmShowArrow],
@@ -113,7 +116,7 @@ export class NzPopconfirmDirective extends NzTooltipBaseDirective {
   /**
    * @override
    */
-  protected createComponent(): void {
+  protected override createComponent(): void {
     super.createComponent();
 
     (this.component as NzPopconfirmComponent).nzOnCancel.pipe(takeUntil(this.destroy$)).subscribe(() => {
@@ -154,7 +157,7 @@ export class NzPopconfirmDirective extends NzTooltipBaseDirective {
         [ngClass]="_classMap"
         [class.ant-popover-rtl]="dir === 'rtl'"
         [ngStyle]="nzOverlayStyle"
-        [@.disabled]="noAnimation?.nzNoAnimation"
+        [@.disabled]="!!noAnimation?.nzNoAnimation"
         [nzNoAnimation]="noAnimation?.nzNoAnimation"
         [@zoomBigMotion]="'active'"
       >
@@ -168,7 +171,7 @@ export class NzPopconfirmDirective extends NzTooltipBaseDirective {
                 <div class="ant-popover-message">
                   <ng-container *nzStringTemplateOutlet="nzTitle">
                     <ng-container *nzStringTemplateOutlet="nzIcon; let icon">
-                      <i nz-icon [nzType]="icon || 'exclamation-circle'" nzTheme="fill"></i>
+                      <span nz-icon [nzType]="icon || 'exclamation-circle'" nzTheme="fill"></span>
                     </ng-container>
                     <div class="ant-popover-message-title">{{ nzTitle }}</div>
                   </ng-container>
@@ -190,6 +193,7 @@ export class NzPopconfirmDirective extends NzTooltipBaseDirective {
                     [nzSize]="'small'"
                     [nzType]="nzOkType !== 'danger' ? nzOkType : 'primary'"
                     [nzDanger]="nzOkDanger || nzOkType === 'danger'"
+                    [nzLoading]="confirmLoading"
                     (click)="onConfirm()"
                     [attr.cdkFocusInitial]="nzAutoFocus === 'ok' || null"
                   >
@@ -217,28 +221,31 @@ export class NzPopconfirmComponent extends NzToolTipComponent implements OnDestr
   nzOkType: NzButtonType | 'danger' = 'primary';
   nzOkDanger: boolean = false;
   nzAutoFocus: NzAutoFocusType = null;
+  nzBeforeConfirm: (() => Observable<boolean> | Promise<boolean> | boolean) | null = null;
 
   readonly nzOnCancel = new Subject<void>();
   readonly nzOnConfirm = new Subject<void>();
 
-  protected _trigger: NzTooltipTrigger = 'click';
+  protected override _trigger: NzTooltipTrigger = 'click';
   private elementFocusedBeforeModalWasOpened: HTMLElement | null = null;
   private document: Document;
 
-  _prefix = 'ant-popover';
+  override _prefix = 'ant-popover';
+
+  confirmLoading = false;
 
   constructor(
     cdr: ChangeDetectorRef,
     private elementRef: ElementRef,
     @Optional() directionality: Directionality,
     @Optional() @Inject(DOCUMENT) document: NzSafeAny,
-    @Host() @Optional() public noAnimation?: NzNoAnimationDirective
+    @Host() @Optional() noAnimation?: NzNoAnimationDirective
   ) {
     super(cdr, directionality, noAnimation);
     this.document = document;
   }
 
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void {
     super.ngOnDestroy();
 
     this.nzOnCancel.complete();
@@ -248,7 +255,7 @@ export class NzPopconfirmComponent extends NzToolTipComponent implements OnDestr
   /**
    * @override
    */
-  show(): void {
+  override show(): void {
     if (!this.nzCondition) {
       this.capturePreviouslyFocusedElement();
       super.show();
@@ -257,9 +264,14 @@ export class NzPopconfirmComponent extends NzToolTipComponent implements OnDestr
     }
   }
 
-  hide(): void {
+  override hide(): void {
     super.hide();
     this.restoreFocus();
+  }
+
+  handleConfirm(): void {
+    this.nzOnConfirm.next();
+    super.hide();
   }
 
   onCancel(): void {
@@ -268,8 +280,26 @@ export class NzPopconfirmComponent extends NzToolTipComponent implements OnDestr
   }
 
   onConfirm(): void {
-    this.nzOnConfirm.next();
-    super.hide();
+    if (this.nzBeforeConfirm) {
+      const observable = wrapIntoObservable(this.nzBeforeConfirm()).pipe(first());
+      this.confirmLoading = true;
+      observable
+        .pipe(
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.markForCheck();
+          }),
+          takeUntil(this.nzVisibleChange),
+          takeUntil(this.destroy$)
+        )
+        .subscribe(value => {
+          if (value) {
+            this.handleConfirm();
+          }
+        });
+    } else {
+      this.handleConfirm();
+    }
   }
 
   private capturePreviouslyFocusedElement(): void {

@@ -7,7 +7,6 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  ElementRef,
   EventEmitter,
   Input,
   OnChanges,
@@ -49,7 +48,7 @@ interface NzThItemInterface {
         [nzDropdownMenu]="filterMenu"
         (nzVisibleChange)="onVisibleChange($event)"
       >
-        <i nz-icon nzType="filter" nzTheme="fill"></i>
+        <span nz-icon nzType="filter" nzTheme="fill"></span>
       </nz-filter-trigger>
       <nz-dropdown-menu #filterMenu="nzDropdownMenu">
         <div class="ant-table-filter-dropdown">
@@ -74,7 +73,8 @@ interface NzThItemInterface {
         </div>
       </nz-dropdown-menu>
     </ng-container>
-  `
+  `,
+  host: { class: 'ant-table-filter-column' }
 })
 export class NzTableFilterComponent implements OnChanges, OnDestroy, OnInit {
   @Input() contentTemplate: TemplateRef<NzSafeAny> | null = null;
@@ -83,7 +83,7 @@ export class NzTableFilterComponent implements OnChanges, OnDestroy, OnInit {
   @Input() filterMultiple = true;
   @Input() listOfFilter: NzTableFilterList = [];
   @Output() readonly filterChange = new EventEmitter<NzSafeAny[] | NzSafeAny>();
-  private destroy$ = new Subject();
+  private destroy$ = new Subject<boolean>();
   locale!: NzTableI18nInterface;
   isChecked = false;
   isVisible = false;
@@ -153,10 +153,7 @@ export class NzTableFilterComponent implements OnChanges, OnDestroy, OnInit {
     return listOfParsedFilter.some(item => item.checked);
   }
 
-  constructor(private cdr: ChangeDetectorRef, private i18n: NzI18nService, private elementRef: ElementRef) {
-    // TODO: move to host after View Engine deprecation
-    this.elementRef.nativeElement.classList.add('ant-table-filter-column');
-  }
+  constructor(private cdr: ChangeDetectorRef, private i18n: NzI18nService) {}
 
   ngOnInit(): void {
     this.i18n.localeChange.pipe(takeUntil(this.destroy$)).subscribe(() => {
@@ -173,7 +170,7 @@ export class NzTableFilterComponent implements OnChanges, OnDestroy, OnInit {
     }
   }
   ngOnDestroy(): void {
-    this.destroy$.next();
+    this.destroy$.next(true);
     this.destroy$.complete();
   }
 }

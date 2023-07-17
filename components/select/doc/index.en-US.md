@@ -38,7 +38,7 @@ import { NzSelectModule } from 'ng-zorro-antd/select';
 | `[nzOpen]` | dropdown expand state, double binding | `boolean` | `false` |
 | `[nzAutoFocus]` | Get focus by default | `boolean` | `false` |
 | `[nzDisabled]` | Whether disabled select | `boolean` | `false` |
-| `[nzDropdownClassName]` | className of dropdown menu | `string` | - |
+| `[nzDropdownClassName]` | className of dropdown menu | `string \| string[]` | - |
 | `[nzDropdownMatchSelectWidth]` | Whether dropdown's width is same width than select. | `boolean` | `true` |
 | `[nzDropdownStyle]` | style of dropdown menu | `object` | - |
 | `[nzCustomTemplate]` | The custom template of select | `TemplateRef<{ $implicit: NzOptionComponent }>` | - |
@@ -51,6 +51,7 @@ import { NzSelectModule } from 'ng-zorro-antd/select';
 | `[nzShowArrow]` | Whether to show the drop-down arrow | `boolean` | `true`(for single select), `false`(for multiple select) |
 | `[nzShowSearch]` | Whether show search input in single mode. | `boolean` | `false` |
 | `[nzSize]` | Size of Select input | `'large' \| 'small' \| 'default'` | `'default'` |
+| `[nzStatus]` | Set validation status | `'error' \| 'warning'` | - |
 | `[nzSuffixIcon]` | The custom suffix icon | `TemplateRef<any> \| string` | - |  ✅ |
 | `[nzRemoveIcon]` | The custom remove icon | `TemplateRef<any>` | - |
 | `[nzClearIcon]` | The custom clear icon | `TemplateRef<any>` | - |
@@ -62,6 +63,7 @@ import { NzSelectModule } from 'ng-zorro-antd/select';
 | `[nzMaxTagPlaceholder]` | Placeholder for not showing tags | `TemplateRef<{ $implicit: any[] }>` | - |
 | `[nzOptionHeightPx]` | Each option height inside the dropdown | `number` | `32` |
 | `[nzOptionOverflowSize]` | Max option size inside the dropdown, overflow when exceed the size | `number` | `8` |
+| `[nzSelectOnTab]` | Allows to select an item with TAB key | `boolean` | `false` |
 | `(ngModelChange)` | Current selected nz-option value change callback. | `EventEmitter<any[]>` | - |
 | `(nzOpenChange)` | dropdown expand change callback | `EventEmitter<boolean>` | `false` |
 | `(nzScrollToBottom)` | Called when dropdown scrolls to bottom | `EventEmitter<any>` | - |

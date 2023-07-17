@@ -1,7 +1,8 @@
-import { Component, DebugElement, ViewChild } from '@angular/core';
+import { ApplicationRef, Component, DebugElement, ViewChild } from '@angular/core';
 import { ComponentFixture, fakeAsync, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { NzSafeAny } from 'ng-zorro-antd/core/types';
 import { NzIconTestModule } from 'ng-zorro-antd/icon/testing';
@@ -12,7 +13,7 @@ import { NzTableModule } from '../table.module';
 describe('nz-th', () => {
   beforeEach(fakeAsync(() => {
     TestBed.configureTestingModule({
-      imports: [NzTableModule, NzIconTestModule, NoopAnimationsModule],
+      imports: [RouterTestingModule, NzTableModule, NzIconTestModule, NoopAnimationsModule],
       declarations: [NzThTestNzTableComponent, NzThTestTableDefaultFilterComponent]
     });
     TestBed.compileComponents();
@@ -93,6 +94,20 @@ describe('nz-th', () => {
           declarations: [NzTestDisableThComponent]
         }).createComponent(NzTestDisableThComponent);
       }).toThrow();
+    });
+    it('should not run change detection on click events for the `nz-filter-trigger`', () => {
+      const appRef = TestBed.inject(ApplicationRef);
+      const event = new MouseEvent('click');
+
+      spyOn(appRef, 'tick');
+      spyOn(event, 'stopPropagation').and.callThrough();
+
+      fixture.debugElement.nativeElement
+        .querySelector('nz-filter-trigger .ant-table-filter-trigger')
+        .dispatchEvent(event);
+
+      expect(appRef.tick).not.toHaveBeenCalled();
+      expect(event.stopPropagation).toHaveBeenCalled();
     });
   });
 });

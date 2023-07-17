@@ -55,6 +55,7 @@ export interface NzCheckBoxOptionInterface {
     }
   ],
   host: {
+    class: 'ant-checkbox-group',
     '[class.ant-checkbox-group-rtl]': `dir === 'rtl'`
   }
 })
@@ -69,6 +70,7 @@ export class NzCheckboxGroupComponent implements ControlValueAccessor, OnInit, O
   dir: Direction = 'ltr';
 
   private destroy$ = new Subject<void>();
+  private isNzDisableFirstChange: boolean = true;
 
   trackByOption(_: number, option: NzCheckBoxOptionInterface): string {
     return option.value;
@@ -84,10 +86,7 @@ export class NzCheckboxGroupComponent implements ControlValueAccessor, OnInit, O
     private focusMonitor: FocusMonitor,
     private cdr: ChangeDetectorRef,
     @Optional() private directionality: Directionality
-  ) {
-    // TODO: move to host after View Engine deprecation
-    this.elementRef.nativeElement.classList.add('ant-checkbox-group');
-  }
+  ) {}
 
   ngOnInit(): void {
     this.focusMonitor
@@ -127,7 +126,8 @@ export class NzCheckboxGroupComponent implements ControlValueAccessor, OnInit, O
   }
 
   setDisabledState(disabled: boolean): void {
-    this.nzDisabled = disabled;
+    this.nzDisabled = (this.isNzDisableFirstChange && this.nzDisabled) || disabled;
+    this.isNzDisableFirstChange = false;
     this.cdr.markForCheck();
   }
 }

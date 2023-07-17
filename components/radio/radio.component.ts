@@ -12,6 +12,7 @@ import {
   Component,
   ElementRef,
   forwardRef,
+  Inject,
   Input,
   NgZone,
   OnDestroy,
@@ -24,6 +25,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { fromEvent, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
+import { NzFormStatusService } from 'ng-zorro-antd/core/form';
 import { BooleanInput, NzSafeAny, OnChangeType, OnTouchedType } from 'ng-zorro-antd/core/types';
 import { InputBoolean } from 'ng-zorro-antd/core/util';
 
@@ -67,6 +69,7 @@ import { NzRadioService } from './radio.service';
     }
   ],
   host: {
+    '[class.ant-radio-wrapper-in-form-item]': '!!nzFormStatusService',
     '[class.ant-radio-wrapper]': '!isRadioButton',
     '[class.ant-radio-button-wrapper]': 'isRadioButton',
     '[class.ant-radio-wrapper-checked]': 'isChecked && !isRadioButton',
@@ -83,12 +86,13 @@ export class NzRadioComponent implements ControlValueAccessor, AfterViewInit, On
 
   private isNgModel = false;
   private destroy$ = new Subject<void>();
+  private isNzDisableFirstChange: boolean = true;
   isChecked = false;
   name: string | null = null;
   isRadioButton = !!this.nzRadioButtonDirective;
   onChange: OnChangeType = () => {};
   onTouched: OnTouchedType = () => {};
-  @ViewChild('inputElement', { static: false }) inputElement?: ElementRef;
+  @ViewChild('inputElement', { static: true }) inputElement!: ElementRef<HTMLInputElement>;
   @Input() nzValue: NzSafeAny | null = null;
   @Input() @InputBoolean() nzDisabled = false;
   @Input() @InputBoolean() nzAutoFocus = false;
@@ -109,12 +113,14 @@ export class NzRadioComponent implements ControlValueAccessor, AfterViewInit, On
     private cdr: ChangeDetectorRef,
     private focusMonitor: FocusMonitor,
     @Optional() private directionality: Directionality,
-    @Optional() private nzRadioService: NzRadioService,
-    @Optional() private nzRadioButtonDirective: NzRadioButtonDirective
+    @Optional() @Inject(NzRadioService) private nzRadioService: NzRadioService | null,
+    @Optional() @Inject(NzRadioButtonDirective) private nzRadioButtonDirective: NzRadioButtonDirective | null,
+    @Optional() public nzFormStatusService?: NzFormStatusService
   ) {}
 
   setDisabledState(disabled: boolean): void {
-    this.nzDisabled = disabled;
+    this.nzDisabled = (this.isNzDisableFirstChange && this.nzDisabled) || disabled;
+    this.isNzDisableFirstChange = false;
     this.cdr.markForCheck();
   }
 
@@ -139,11 +145,26 @@ export class NzRadioComponent implements ControlValueAccessor, AfterViewInit, On
         this.cdr.markForCheck();
       });
       this.nzRadioService.disabled$.pipe(takeUntil(this.destroy$)).subscribe(disabled => {
-        this.nzDisabled = disabled;
+        this.nzDisabled = (this.isNzDisableFirstChange && this.nzDisabled) || disabled;
+        this.isNzDisableFirstChange = false;
         this.cdr.markForCheck();
       });
       this.nzRadioService.selected$.pipe(takeUntil(this.destroy$)).subscribe(value => {
+        const isChecked = this.isChecked;
         this.isChecked = this.nzValue === value;
+        // We don't have to run `onChange()` on each `nz-radio` button whenever the `selected$` emits.
+        // If we have 8 `nz-radio` buttons within the `nz-radio-group` and they're all connected with
+        // `ngModel` or `formControl` then `onChange()` will be called 8 times for each `nz-radio` button.
+        // We prevent this by checking if `isChecked` has been changed or not.
+        if (
+          this.isNgModel &&
+          isChecked !== this.isChecked &&
+          // We're only intereted if `isChecked` has been changed to `false` value to emit `false` to the ascendant form,
+          // since we already emit `true` within the `setupClickListener`.
+          this.isChecked === false
+        ) {
+          this.onChange(false);
+        }
         this.cdr.markForCheck();
       });
     }
@@ -193,9 +214,8 @@ export class NzRadioComponent implements ControlValueAccessor, AfterViewInit, On
             return;
           }
           this.ngZone.run(() => {
-            if (this.nzRadioService) {
-              this.nzRadioService.select(this.nzValue);
-            }
+            this.focus();
+            this.nzRadioService?.select(this.nzValue);
             if (this.isNgModel) {
               this.isChecked = true;
               this.onChange(true);

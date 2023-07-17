@@ -6,7 +6,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   Input,
   OnChanges,
   SimpleChanges,
@@ -27,23 +26,24 @@ import { NzTableSortOrder } from '../table.types';
     <span class="ant-table-column-title"><ng-template [ngTemplateOutlet]="contentTemplate"></ng-template></span>
     <span class="ant-table-column-sorter" [class.ant-table-column-sorter-full]="isDown && isUp">
       <span class="ant-table-column-sorter-inner">
-        <i
+        <span
           nz-icon
           nzType="caret-up"
           *ngIf="isUp"
           class="ant-table-column-sorter-up"
           [class.active]="sortOrder === 'ascend'"
-        ></i>
-        <i
+        ></span>
+        <span
           nz-icon
           nzType="caret-down"
           *ngIf="isDown"
           class="ant-table-column-sorter-down"
           [class.active]="sortOrder === 'descend'"
-        ></i>
+        ></span>
       </span>
     </span>
-  `
+  `,
+  host: { class: 'ant-table-column-sorters' }
 })
 export class NzTableSortersComponent implements OnChanges {
   @Input() sortDirections: NzTableSortOrder[] = ['ascend', 'descend', null];
@@ -52,10 +52,7 @@ export class NzTableSortersComponent implements OnChanges {
   isUp = false;
   isDown = false;
 
-  constructor(private elementRef: ElementRef) {
-    // TODO: move to host after View Engine deprecation
-    this.elementRef.nativeElement.classList.add('ant-table-column-sorters');
-  }
+  constructor() {}
 
   ngOnChanges(changes: SimpleChanges): void {
     const { sortDirections } = changes;

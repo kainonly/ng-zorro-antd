@@ -33,7 +33,9 @@ import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
 
 You should use [nz-menu](/components/menu/en) in `nz-dropdown`. The menu items and dividers are also available by using `nz-menu-item` and `nz-menu-divider`.
 
-> nz-menu of nz-dropdown is unselectable by default, you can make it selectable via `<ul nz-menu nzSelectable>`.
+> Note: `[nz-menu]` of `nz-dropdown` is unselectable by default, you can make it selectable via `<ul nz-menu nzSelectable>`.
+>
+> The `nzMode` of `[nz-menu]` inside `nz-dropdown-menu` can only be the default value `vertical`.
 
 ### nz-dropdown-menu
 
@@ -58,5 +60,5 @@ Create dropdown with contextmenu, the detail can be found in the example above
 
 | Property | Description | Arguments | Return Value |
 | --- | --- | --- | --- |
-| create | create dropdown | `($event:MouseEvent \| {x:number, y:number}, menu:NzDropdownMenuComponent)` | - |
+| create | create dropdown | `($event:MouseEvent \| {x:number, y:number}, menu:NzDropdownMenuComponent)` | `EmbeddedViewRef<any>` |
 | close | close dropdown | - | - |

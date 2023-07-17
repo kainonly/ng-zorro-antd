@@ -58,6 +58,9 @@ import { NzFormModule } from 'ng-zorro-antd/form';
 | `[nzDisableAutoTips]`| 配置 `nz-form-control` 的 `[nzDisableAutoTips]` 的默认值 | `boolean` | `false` | ✅ |
 | `[nzNoColon]`| 配置 `nz-form-label` 的 `[nzNoColon]` 的默认值 | `boolean` | `false` | ✅ |
 | `[nzTooltipIcon]`| 配置 `nz-form-label` 的 `[nzTooltipIcon]` 的默认值 | `string \| { type: string; theme: ThemeType }` | `{ type: 'question-circle', theme: 'outline' }` | ✅ |
+| `[nzLabelAlign]`| 配置 `nz-form-label` 的 `[nzLabelAlign]` 的默认值 | `'left' \| 'right'` | `'right'` |
+| `[nzLabelWrap]`| 配置 `nz-form-label` 的 `[nzLabelWrap]` 的默认值 | `boolean` | `false` |
+
 
 ### nz-form-item
 
@@ -78,6 +81,8 @@ import { NzFormModule } from 'ng-zorro-antd/form';
 | `[nzFor]`| label 标签的 for 属性	 | `string` | - |
 | `[nzTooltipTitle]`| 配置提示信息 | `string \| TemplateRef<void>` | - |
 | `[nzTooltipIcon]`| 配置提示信息的图标 | `string \| NzFormTooltipIcon` | - |
+| `[nzLabelAlign]`| 标签文本对齐方式 | `'left' \| 'right'` | `'right'` |
+| `[nzLabelWrap]`| label 标签的文本换行方式 | `boolean` | `false` |
 
 ### nz-form-control
 

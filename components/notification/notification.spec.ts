@@ -5,7 +5,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { HomeOutline } from '@ant-design/icons-angular/icons';
 
-import { NzConfigService, NZ_CONFIG } from 'ng-zorro-antd/core/config';
+import { NZ_CONFIG, NzConfigService } from 'ng-zorro-antd/core/config';
 import { dispatchMouseEvent } from 'ng-zorro-antd/core/testing';
 import { ComponentBed, createComponentBed } from 'ng-zorro-antd/core/testing/component-bed';
 import { NZ_ICONS } from 'ng-zorro-antd/icon';
@@ -189,6 +189,20 @@ describe('NzNotification', () => {
     expect(overlayContainerElement.textContent).toContain('EXISTS');
     expect(overlayContainerElement.querySelector('.ant-notification-topLeft')).not.toBeNull();
   });
+  it('should show with placement of top', () => {
+    nzConfigService.set('notification', { nzPlacement: 'top' });
+    notificationService.create('', '', 'EXISTS');
+    fixture.detectChanges();
+    expect(overlayContainerElement.textContent).toContain('EXISTS');
+    expect(overlayContainerElement.querySelector('.ant-notification-top')).not.toBeNull();
+  });
+  it('should show with placement of bottom', () => {
+    nzConfigService.set('notification', { nzPlacement: 'bottom' });
+    notificationService.create('', '', 'EXISTS');
+    fixture.detectChanges();
+    expect(overlayContainerElement.textContent).toContain('EXISTS');
+    expect(overlayContainerElement.querySelector('.ant-notification-bottom')).not.toBeNull();
+  });
   // Should support nzData as context.
   it('should open a message box with template ref', () => {
     notificationService.template(fixture.componentInstance.demoTemplateRef, { nzData: 'data' });
@@ -204,9 +218,12 @@ describe('NzNotification', () => {
   });
 
   it('should update an existing notification when keys are matched', () => {
-    notificationService.create('', '', 'EXISTS', { nzKey: 'exists' });
+    let messageId: string | null = null;
+    messageId = notificationService.create('', '', 'EXISTS', { nzKey: 'exists' }).messageId;
     expect(overlayContainerElement.textContent).toContain('EXISTS');
-    notificationService.create('success', 'Title', 'SHOULD NOT CHANGE', { nzKey: 'exists' });
+    expect(messageId).toEqual('exists');
+    messageId = notificationService.create('success', 'Title', 'SHOULD NOT CHANGE', { nzKey: 'exists' }).messageId;
+    expect(messageId).toEqual('exists');
     expect(overlayContainerElement.textContent).not.toContain('EXISTS');
     expect(overlayContainerElement.textContent).toContain('Title');
     expect(overlayContainerElement.textContent).toContain('SHOULD NOT CHANGE');

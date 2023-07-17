@@ -16,6 +16,7 @@ import {
   ContentChildren,
   EventEmitter,
   Input,
+  NgZone,
   OnDestroy,
   OnInit,
   Optional,
@@ -25,7 +26,7 @@ import {
   ViewChild,
   ViewEncapsulation
 } from '@angular/core';
-import { NavigationEnd, Router, RouterLink, RouterLinkWithHref } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { merge, Observable, of, Subject, Subscription } from 'rxjs';
 import { delay, filter, first, startWith, takeUntil } from 'rxjs/operators';
 
@@ -234,6 +235,7 @@ export class NzTabSetComponent implements OnInit, AfterContentChecked, OnDestroy
 
   constructor(
     public nzConfigService: NzConfigService,
+    private ngZone: NgZone,
     private cdr: ChangeDetectorRef,
     @Optional() private directionality: Directionality,
     @Optional() private router: Router
@@ -259,9 +261,10 @@ export class NzTabSetComponent implements OnInit, AfterContentChecked, OnDestroy
   }
 
   ngAfterContentInit(): void {
-    Promise.resolve().then(() => {
-      this.setUpRouter();
+    this.ngZone.runOutsideAngular(() => {
+      Promise.resolve().then(() => this.setUpRouter());
     });
+
     this.subscribeToTabLabels();
     this.subscribeToAllTabChanges();
 
@@ -470,12 +473,20 @@ export class NzTabSetComponent implements OnInit, AfterContentChecked, OnDestroy
 
     return tabs.findIndex(tab => {
       const c = tab.linkDirective;
-      return c ? isActive(c.routerLink) || isActive(c.routerLinkWithHref) : false;
+      return c ? isActive(c.routerLink) : false;
     });
   }
 
-  private isLinkActive(router: Router): (link?: RouterLink | RouterLinkWithHref) => boolean {
-    return (link?: RouterLink | RouterLinkWithHref) => (link ? router.isActive(link.urlTree, this.nzLinkExact) : false);
+  private isLinkActive(router: Router): (link?: RouterLink | RouterLink) => boolean {
+    return (link?: RouterLink | RouterLink) =>
+      link
+        ? router.isActive(link.urlTree || '', {
+            paths: this.nzLinkExact ? 'exact' : 'subset',
+            queryParams: this.nzLinkExact ? 'exact' : 'subset',
+            fragment: 'ignored',
+            matrixParams: 'ignored'
+          })
+        : false;
   }
 
   private getTabContentMarginValue(): number {

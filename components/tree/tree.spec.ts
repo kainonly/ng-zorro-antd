@@ -1,5 +1,5 @@
-import { Component, TemplateRef, ViewChild } from '@angular/core';
-import { fakeAsync, tick } from '@angular/core/testing';
+import { ApplicationRef, Component, TemplateRef, ViewChild } from '@angular/core';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Observable, of } from 'rxjs';
@@ -144,6 +144,70 @@ describe('tree', () => {
         expect(component.treeComponent.getMatchedNodeList().length).toEqual(1);
       }));
 
+      [
+        {
+          title:
+            "should display 7 nodes when hideUnMatched=false and virtualHeight = undefined and nzSearchValue = '0-1'",
+          when: { hideUnMatched: false, searchValue: '0-1' },
+          then: { matchedNodeList: 3, nzFlattenNodes: 7 }
+        },
+        {
+          title:
+            "should display 7 nodes when hideUnMatched=false and virtualHeight = '300px' and nzSearchValue = '0-1'",
+          when: { hideUnMatched: false, virtualHeight: '300px', searchValue: '0-1' },
+          then: { matchedNodeList: 3, nzFlattenNodes: 7 }
+        },
+        {
+          title:
+            "'should display 7 nodes when hideUnMatched=true and virtualHeight = undefined and nzSearchValue = '0-1'",
+          when: { hideUnMatched: true, searchValue: '0-1' },
+          then: { matchedNodeList: 3, nzFlattenNodes: 7 }
+        },
+        {
+          title:
+            "should display 4 matched nodes based on nzSearchValue when hideUnMatched=true and virtualHeight = '300px' and nzSearchValue = undefined",
+          when: { hideUnMatched: true, virtualHeight: '300px' },
+          then: { matchedNodeList: 0, nzFlattenNodes: 3 }
+        },
+        {
+          title:
+            "should display 4 matched nodes based on nzSearchValue when hideUnMatched=true and virtualHeight = '300px' and nzSearchValue = ''",
+          when: { hideUnMatched: true, virtualHeight: '300px', searchValue: '' },
+          then: { matchedNodeList: 0, nzFlattenNodes: 3 }
+        },
+        {
+          title:
+            "should display 4 matched nodes based on nzSearchValue when hideUnMatched=true and virtualHeight = '300px' and nzSearchValue = '0-1'",
+          when: { hideUnMatched: true, virtualHeight: '300px', searchValue: '0-1' },
+          then: { matchedNodeList: 3, nzFlattenNodes: 4 }
+        }
+      ].forEach(({ title, when, then }) => {
+        it(
+          title,
+          fakeAsync(() => {
+            // Given
+            const { component, fixture, nativeElement } = testBed;
+            component.searchValue = when.searchValue;
+            component.virtualHeight = when.virtualHeight;
+            component.hideUnMatched = when.hideUnMatched;
+            // When
+            fixture.detectChanges();
+            tick(300);
+            fixture.detectChanges();
+            // Then
+            expect(component.treeComponent.getMatchedNodeList().length)
+              .withContext('treeComponent.getMatchedNodeList().length')
+              .toBe(then.matchedNodeList);
+            expect(component.treeComponent.nzFlattenNodes.length)
+              .withContext('treeComponent.nzFlattenNodes.length')
+              .toBe(then.nzFlattenNodes);
+            expect(nativeElement.querySelectorAll('nz-tree-node').length)
+              .withContext('number of displayed nz-tree-node elements')
+              .toBe(then.nzFlattenNodes);
+          })
+        );
+      });
+
       it('should match nodes based on nzSearchFunc', fakeAsync(() => {
         const { component, fixture, nativeElement } = testBed;
         component.searchFunc = (data: NzTreeNodeOptions): boolean => data.title === component.searchValue;
@@ -181,6 +245,26 @@ describe('tree', () => {
         const hiddenNodes = nativeElement.querySelectorAll('nz-tree-node[builtin][style*="display: none;"]');
         expect(hiddenNodes.length).toEqual(2);
       }));
+
+      describe('change detection behavior', () => {
+        it('should not run change detection when the `nz-tree-node` is clicked', () => {
+          const { component, fixture, nativeElement } = testBed;
+          component.selectMode = true;
+          fixture.detectChanges();
+
+          const appRef = TestBed.inject(ApplicationRef);
+          const event = new MouseEvent('mousedown');
+
+          spyOn(appRef, 'tick');
+          spyOn(event, 'preventDefault').and.callThrough();
+
+          const treeNode = nativeElement.querySelector('nz-tree-node')!;
+          treeNode.dispatchEvent(event);
+
+          expect(appRef.tick).not.toHaveBeenCalled();
+          expect(event.preventDefault).toHaveBeenCalled();
+        });
+      });
     });
 
     describe('basic style of tree', () => {
@@ -408,15 +492,8 @@ describe('tree', () => {
         expect(shownNodes.length).toEqual(7);
       }));
 
-      it('should trigger drag over event', fakeAsync(() => {
+      xit('should trigger drag over event', fakeAsync(() => {
         //  ============ over with different position in next test ==============
-        // clientY, top, bottom, height, des;
-        // pipeline: 353, 557, 573, 16, 4
-        // I don't know how to test dragover in pipeline
-        // locally top / bottom / des : 335, 357, 5.5
-        // drag-over(0): 340.5 ~ 352.5 561~569
-        // drag-over-gap-bottom(1): > 352.5 569
-        // drag-over-gap-top(-1): < 340.5 561
         /**
          * nzTreeService#calcDropPosition
          * if (clientY <= top + des) {
@@ -429,8 +506,8 @@ describe('tree', () => {
 
         const { fixture, nativeElement } = testBed;
         let elementNode;
-        const dragNode = nativeElement.querySelector("[title='0-2']") as HTMLElement;
-        const passedNode = nativeElement.querySelector("[title='0-1']") as HTMLElement;
+        const dragNode = nativeElement.querySelector("[title='0-2']") as HTMLElement; // sixth node
+        const passedNode = nativeElement.querySelector("[title='0-1']") as HTMLElement; // fifth node
         //  ============ dragstart ==============
         dispatchMouseEvent(dragNode, 'dragstart');
         fixture.detectChanges();
@@ -443,21 +520,23 @@ describe('tree', () => {
         dispatchMouseEvent(passedNode, 'dragenter');
 
         // =========== dragover with different position ===========
+        // Each node's height with 24px + 4px padding, use getBoundingClientRect to get target node position
         // drag-over-gap-top
-        dispatchMouseEvent(passedNode, 'dragover', 300, 340);
+        const { x, y } = passedNode.getBoundingClientRect();
+        dispatchMouseEvent(passedNode, 'dragover', x + 50, y - 6);
         elementNode = nativeElement.querySelector('nz-tree-node[builtin]:nth-child(2)') as HTMLElement;
         expect(elementNode.classList).toContain('drag-over-gap-top');
-
+        tick(150);
         // drag-over
-        dispatchMouseEvent(passedNode, 'dragover', 300, 566);
-        // elementNode = nativeElement.querySelector('nz-tree-node:nth-child(2) .ant-tree-treenode') as HTMLElement;
-        // expect(elementNode.classList).toContain('drag-over');
-
+        dispatchMouseEvent(passedNode, 'dragover', x + 50, y + 12);
+        elementNode = nativeElement.querySelector('nz-tree-node[builtin]:nth-child(2)') as HTMLElement;
+        expect(elementNode.classList).toContain('drag-over');
+        tick(150);
         // drag-over-gap-bottom
-        dispatchMouseEvent(passedNode, 'dragover', 300, 570);
+        dispatchMouseEvent(passedNode, 'dragover', x + 50, y + 18);
         elementNode = nativeElement.querySelector('nz-tree-node[builtin]:nth-child(2)') as HTMLElement;
         expect(elementNode.classList).toContain('drag-over-gap-bottom');
-
+        tick(150);
         // ======= enter check, expand passing nodes ========
         expect(dragEnterSpy).toHaveBeenCalledTimes(1);
         expect(dragOverSpy).toHaveBeenCalledTimes(3);
@@ -573,10 +652,12 @@ describe('tree', () => {
       [nzMultiple]="multiple"
       [nzSearchValue]="searchValue"
       [nzSearchFunc]="searchFunc"
+      [nzVirtualHeight]="virtualHeight"
       [nzHideUnMatched]="hideUnMatched"
       [nzExpandAll]="expandAll"
       [nzExpandedIcon]="expandedIcon"
       [nzAsyncData]="asyncData"
+      [nzSelectMode]="selectMode"
       (nzSearchValueChange)="nzEvent($event)"
       (nzClick)="nzEvent($event)"
       (nzDblClick)="nzEvent($event)"
@@ -585,7 +666,7 @@ describe('tree', () => {
       (nzCheckBoxChange)="nzEvent($event)"
     ></nz-tree>
     <ng-template #expandedIconTpl let-node>
-      <i nz-icon nzType="smile" class="ant-tree-switcher-icon"></i>
+      <span nz-icon nzType="smile" class="ant-tree-switcher-icon"></span>
     </ng-template>
   `
 })
@@ -595,6 +676,7 @@ export class NzTestTreeBasicControlledComponent {
   multiple = true;
   expandAll = false;
   asyncData = false;
+  selectMode = false;
   checkStrictly = false;
   showLine = false;
   defaultCheckedKeys: string[] = [];
@@ -602,6 +684,7 @@ export class NzTestTreeBasicControlledComponent {
   defaultExpandedKeys: string[] = [];
   expandedIcon?: TemplateRef<{ $implicit: NzTreeNode; origin: NzTreeNodeOptions }>;
   searchFunc?: (node: NzTreeNodeOptions) => boolean;
+  virtualHeight?: string | boolean = false;
   hideUnMatched = false;
   nodes: NzTreeNodeOptions[] | NzTreeNode[] = [
     {

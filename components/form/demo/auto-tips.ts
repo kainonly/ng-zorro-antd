@@ -1,5 +1,12 @@
 import { Component } from '@angular/core';
-import { AbstractControl, FormBuilder, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  UntypedFormBuilder,
+  UntypedFormControl,
+  UntypedFormGroup,
+  ValidatorFn,
+  Validators
+} from '@angular/forms';
 import { Observable, Observer } from 'rxjs';
 
 import { NzSafeAny } from 'ng-zorro-antd/core/types';
@@ -58,7 +65,7 @@ import { NzSafeAny } from 'ng-zorro-antd/core/types';
   ]
 })
 export class NzDemoFormAutoTipsComponent {
-  validateForm: FormGroup;
+  validateForm: UntypedFormGroup;
 
   // current locale is key of the nzAutoTips
   // if it is not found, it will be searched again with `default`
@@ -92,7 +99,7 @@ export class NzDemoFormAutoTipsComponent {
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  userNameAsyncValidator = (control: FormControl) =>
+  userNameAsyncValidator = (control: UntypedFormControl) =>
     new Observable((observer: Observer<MyValidationErrors | null>) => {
       setTimeout(() => {
         if (control.value === 'JasonWood') {
@@ -106,7 +113,7 @@ export class NzDemoFormAutoTipsComponent {
       }, 1000);
     });
 
-  confirmValidator = (control: FormControl): { [s: string]: boolean } => {
+  confirmValidator = (control: UntypedFormControl): { [s: string]: boolean } => {
     if (!control.value) {
       return { error: true, required: true };
     } else if (control.value !== this.validateForm.controls.password.value) {
@@ -115,7 +122,7 @@ export class NzDemoFormAutoTipsComponent {
     return {};
   };
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: UntypedFormBuilder) {
     // use `MyValidators`
     const { required, maxLength, minLength, email, mobile } = MyValidators;
     this.validateForm = this.fb.group({
@@ -133,7 +140,7 @@ export type MyErrorsOptions = { 'zh-cn': string; en: string } & Record<string, N
 export type MyValidationErrors = Record<string, MyErrorsOptions>;
 
 export class MyValidators extends Validators {
-  static minLength(minLength: number): ValidatorFn {
+  static override minLength(minLength: number): ValidatorFn {
     return (control: AbstractControl): MyValidationErrors | null => {
       if (Validators.minLength(minLength)(control) === null) {
         return null;
@@ -142,7 +149,7 @@ export class MyValidators extends Validators {
     };
   }
 
-  static maxLength(maxLength: number): ValidatorFn {
+  static override maxLength(maxLength: number): ValidatorFn {
     return (control: AbstractControl): MyValidationErrors | null => {
       if (Validators.maxLength(maxLength)(control) === null) {
         return null;

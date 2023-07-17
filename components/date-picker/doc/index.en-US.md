@@ -50,6 +50,8 @@ The following APIs are shared by nz-date-picker, nz-range-picker.
 | `[nzPopupStyle]` | to customize the style of the popup calendar | `object` | `{}` | - |
 | `[nzRenderExtraFooter]` | render extra footer in panel | `TemplateRef \| string \| (() => TemplateRef \| string)` | - |
 | `[nzSize]` | determine the size of the input box, the height of `large` and `small`, are 40px and 24px respectively, while default size is 32px | `'large' \| 'small'` | - | - |
+| `[nzStatus]` | Set validation status | `'error' \| 'warning'` | - |
+| `[nzPlacement]` | The position where the selection box pops up | `'bottomLeft' \| 'bottomRight' \| 'topLeft' \| 'topRight'` | `'bottomLeft'` |  |
 | `[nzSuffixIcon]` | the custom suffix icon | `string` \| `TemplateRef` | - | ✅ |
 | `[nzBorderless]` | remove the border | `boolean` | `false` | - |
 | `[nzInline]` | inline mode | `boolean` | `false` | - |
@@ -76,6 +78,7 @@ The following APIs are shared by nz-date-picker, nz-range-picker.
 | `[nzShowTime]` | to provide an additional time selection | `object \| boolean` | [TimePicker Options](/components/time-picker/en#api) |
 | `[nzShowToday]` | whether to show 'Today' button | `boolean` | `true` |
 | `[nzShowNow]` | whether to show 'Now' button on panel when `nzShowTime` is set | `boolean` | `true` |
+| `[nzShowWeekNumber]` | whether to show the week number on each row (Only supported by date picker. Week picker always shows week numbers) | `boolean` | `false` |
 | `(nzOnOk)` | callback when click ok button | `EventEmitter<Date>` | - |
 
 ### nz-range-picker
@@ -84,7 +87,7 @@ The following APIs are shared by nz-date-picker, nz-range-picker.
 | -------- | ----------- | ---- | ------- |
 | `[(ngModel)]` | Date | `Date[]` | - |
 | `[nzRanges]` | preseted ranges for quick selection | `{ [ key: string ]: Date[] }  \|  { [ key: string ]: () => Date[] }` | - |
-| `[nzSeparator]` | separator | `string` | `'~'` |
+| `[nzSeparator]` | separator | `string \| TemplateRef` | `'~'` |
 | `(nzOnCalendarChange)` | The start time or the end time of the range change callback | `EventEmitter<Date[]>` | - |
 
 ### nz-range-picker[nzMode="date"]
@@ -93,6 +96,7 @@ The following APIs are shared by nz-date-picker, nz-range-picker.
 | -------- | ----------- | ---- | ------- |
 | `[nzShowTime]` | to provide an additional time selection | `object \| boolean` | [TimePicker Options](/components/time-picker/en#api) |
 | `[nzDisabledTime]` | to specify the time that cannot be selected | `(current: Date, partial: 'start' \| 'end') => { nzDisabledHours, nzDisabledMinutes, nzDisabledSeconds }` | - |
+| `[nzShowWeekNumber]` | whether to show the week number on each row (Only supported by date picker. Week picker always shows week numbers) | `boolean` | `false` |
 | `(nzOnOk)` | click ok callback | `EventEmitter<Date[]>` | - |
 
 > Currently, supported `nz-time-picker` parameters in `nzShowTime` are: `nzFormat`, `nzHourStep`, `nzMinuteStep`, `nzSecondStep`, `nzDisabledHours`, `nzDisabledMinutes`, `nzDisabledSeconds`, `nzHideDisabledOptions`, `nzDefaultOpenValue`, `nzAddOn`

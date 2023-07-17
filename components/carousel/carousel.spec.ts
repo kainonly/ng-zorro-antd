@@ -17,7 +17,7 @@ describe('carousel', () => {
   beforeEach(fakeAsync(() => {
     TestBed.configureTestingModule({
       imports: [BidiModule, NzCarouselModule],
-      declarations: [NzTestCarouselBasicComponent, NzTestCarouselRtlComponent]
+      declarations: [NzTestCarouselBasicComponent, NzTestCarouselRtlComponent, NzTestCarouselActiveIndexComponent]
     });
     TestBed.compileComponents();
   }));
@@ -220,6 +220,35 @@ describe('carousel', () => {
       tickMilliseconds(fixture, 700);
       expect(carouselContents[1].nativeElement.classList).toContain('slick-active');
     }));
+
+    it('should disable loop work', fakeAsync(() => {
+      testComponent.loop = false;
+      fixture.detectChanges();
+      swipe(testComponent.nzCarouselComponent, -10);
+      tickMilliseconds(fixture, 700);
+      expect(carouselContents[0].nativeElement.classList).toContain('slick-active');
+      swipe(testComponent.nzCarouselComponent, -1000);
+      tickMilliseconds(fixture, 700);
+      expect(carouselContents[0].nativeElement.classList).toContain('slick-active');
+
+      testComponent.loop = true;
+      fixture.detectChanges();
+      swipe(testComponent.nzCarouselComponent, -1000);
+      tickMilliseconds(fixture, 700);
+      expect(carouselContents[3].nativeElement.classList).toContain('slick-active');
+      swipe(testComponent.nzCarouselComponent, 1000);
+      tickMilliseconds(fixture, 700);
+      expect(carouselContents[0].nativeElement.classList).toContain('slick-active');
+
+      testComponent.loop = false;
+      testComponent.autoPlay = true;
+      testComponent.autoPlaySpeed = 1000;
+      fixture.detectChanges();
+      tick(10000);
+      expect(carouselContents[3].nativeElement.classList).toContain('slick-active');
+      tick(1000 + 10);
+      expect(carouselContents[3].nativeElement.classList).toContain('slick-active');
+    }));
   });
 
   describe('strategies', () => {
@@ -283,6 +312,26 @@ describe('carousel', () => {
 
     // already covered in components specs.
     // describe('opacity strategy', () => {});
+  });
+
+  describe('carousel nzAfterChange return value', () => {
+    let fixture: ComponentFixture<NzTestCarouselActiveIndexComponent>;
+    let testComponent: NzTestCarouselActiveIndexComponent;
+
+    beforeEach(() => {
+      fixture = TestBed.createComponent(NzTestCarouselActiveIndexComponent);
+      fixture.detectChanges();
+      testComponent = fixture.debugElement.componentInstance;
+    });
+
+    it('carousel activeIndex should be equal to nzAfterChange return value', fakeAsync(() => {
+      fixture.detectChanges();
+      [0, 1, 2, 3, 4].forEach(_ => {
+        testComponent.nzCarouselComponent.next();
+        tickMilliseconds(fixture, 700);
+        expect(testComponent.index).toBe(testComponent.nzCarouselComponent.activeIndex);
+      });
+    }));
   });
 });
 
@@ -386,6 +435,7 @@ function swipe(carousel: NzCarouselComponent, distance: number): void {
       [nzDotRender]="dotRender"
       [nzAutoPlay]="autoPlay"
       [nzAutoPlaySpeed]="autoPlaySpeed"
+      [nzLoop]="loop"
       (nzAfterChange)="afterChange($event)"
       (nzBeforeChange)="beforeChange($event)"
     >
@@ -406,6 +456,7 @@ export class NzTestCarouselBasicComponent {
   array = [1, 2, 3, 4];
   autoPlay = false;
   autoPlaySpeed = 3000;
+  loop = true;
   afterChange = jasmine.createSpy('afterChange callback');
   beforeChange = jasmine.createSpy('beforeChange callback');
 }
@@ -420,4 +471,23 @@ export class NzTestCarouselBasicComponent {
 export class NzTestCarouselRtlComponent {
   @ViewChild(Dir) dir!: Dir;
   direction = 'rtl';
+}
+
+@Component({
+  template: `
+    <nz-carousel (nzAfterChange)="afterChange($event)">
+      <div nz-carousel-content *ngFor="let index of array">
+        <h3>{{ index }}</h3>
+      </div>
+    </nz-carousel>
+  `
+})
+export class NzTestCarouselActiveIndexComponent {
+  @ViewChild(NzCarouselComponent, { static: true }) nzCarouselComponent!: NzCarouselComponent;
+  array = [0, 1, 2, 3, 4];
+  index = 0;
+
+  afterChange(index: number): void {
+    this.index = index;
+  }
 }

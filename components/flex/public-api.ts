@@ -3,7 +3,6 @@
  * found in the LICENSE file at https://github.com/NG-ZORRO/ng-zorro-antd/blob/master/LICENSE
  */
 
-import { NgModule } from '@angular/core';
-
-@NgModule()
-export class NzDrawerServiceModule {}
+export * from './nz-flex.directive';
+export * from './typings';
+export * from './flex.module';

@@ -5,7 +5,7 @@
 
 import { LEFT_ARROW, RIGHT_ARROW } from '@angular/cdk/keycodes';
 import { Overlay, OverlayContainer } from '@angular/cdk/overlay';
-import { Component, DebugElement, NgModule, ViewChild } from '@angular/core';
+import { Component, DebugElement, NgModule, NgZone, ViewChild } from '@angular/core';
 import {
   ComponentFixture,
   discardPeriodicTasks,
@@ -25,11 +25,14 @@ import {
   RotateLeftOutline,
   RotateRightOutline,
   ZoomInOutline,
-  ZoomOutOutline
+  ZoomOutOutline,
+  SwapOutline
 } from '@ant-design/icons-angular/icons';
 
-import { dispatchFakeEvent, dispatchKeyboardEvent } from 'ng-zorro-antd/core/testing';
-import { NzIconModule, NZ_ICONS } from 'ng-zorro-antd/icon';
+import { NzConfigService } from 'ng-zorro-antd/core/config';
+import { dispatchFakeEvent, dispatchKeyboardEvent, MockNgZone } from 'ng-zorro-antd/core/testing';
+import { NzSafeAny } from 'ng-zorro-antd/core/types';
+import { NZ_ICONS, NzIconModule } from 'ng-zorro-antd/icon';
 import {
   getFitContentPosition,
   NzImage,
@@ -52,11 +55,21 @@ describe('Basics', () => {
   let fixture: ComponentFixture<TestImageBasicsComponent>;
   let context: TestImageBasicsComponent;
   let debugElement: DebugElement;
+  let zone: MockNgZone;
 
   beforeEach(fakeAsync(() => {
     TestBed.configureTestingModule({
       imports: [NzImageModule, TestImageModule, NoopAnimationsModule],
-      providers: [{ provide: Overlay, useClass: Overlay }]
+      providers: [
+        { provide: Overlay, useClass: Overlay },
+        {
+          provide: NgZone,
+          useFactory: () => {
+            zone = new MockNgZone();
+            return zone;
+          }
+        }
+      ]
     });
     TestBed.compileComponents();
   }));
@@ -189,6 +202,7 @@ describe('Preview', () => {
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
   let previewElement: HTMLElement | null;
+  let configService: NzConfigService;
 
   beforeEach(fakeAsync(() => {
     TestBed.configureTestingModule({
@@ -204,7 +218,8 @@ describe('Preview', () => {
             LeftCircleOutline,
             RotateLeftOutline,
             RotateRightOutline,
-            CloseCircleOutline
+            CloseCircleOutline,
+            SwapOutline
           ]
         }
       ]
@@ -212,8 +227,9 @@ describe('Preview', () => {
     TestBed.compileComponents();
   }));
 
-  beforeEach(inject([OverlayContainer], (oc: OverlayContainer) => {
+  beforeEach(inject([OverlayContainer, NzConfigService], (oc: OverlayContainer, cs: NzConfigService) => {
     overlayContainer = oc;
+    configService = cs;
     overlayContainerElement = oc.getContainerElement();
   }));
 
@@ -286,7 +302,7 @@ describe('Preview', () => {
   });
 
   describe('ImagePreview', () => {
-    it('should rotate, zoom and close work', fakeAsync(() => {
+    it('should rotate, zoom and close and flip work', fakeAsync(() => {
       context.firstSrc = QUICK_SRC;
       fixture.detectChanges();
       const image = debugElement.nativeElement.querySelector('img');
@@ -300,6 +316,8 @@ describe('Preview', () => {
       const zoomOut = operations[2];
       const rotateRight = operations[3];
       const rotateLeft = operations[4];
+      const flipHorizontally = operations[5];
+      const flipVertically = operations[6];
       dispatchFakeEvent(rotateLeft, 'click');
       tickChanges();
       expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(1, 1, 1) rotate(-90deg)');
@@ -308,16 +326,152 @@ describe('Preview', () => {
       expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(1, 1, 1) rotate(0deg)');
       dispatchFakeEvent(zoomIn, 'click');
       tickChanges();
-      expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(2, 2, 1) rotate(0deg)');
+      expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(1.5, 1.5, 1) rotate(0deg)');
       dispatchFakeEvent(zoomOut, 'click');
       tickChanges();
       expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(1, 1, 1) rotate(0deg)');
+      dispatchFakeEvent(flipHorizontally, 'click');
+      expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(-1, 1, 1) rotate(0deg)');
+      tickChanges();
+      dispatchFakeEvent(flipVertically, 'click');
+      expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(-1, -1, 1) rotate(0deg)');
+      tickChanges();
       dispatchFakeEvent(close, 'click');
       tickChanges();
       previewElement = getPreviewElement();
       expect(previewElement).not.toBeTruthy();
       discardPeriodicTasks();
       flush();
+    }));
+
+    it('should zoom in/out based on the zoom step value', fakeAsync(() => {
+      context.firstSrc = QUICK_SRC;
+      context.zoomStep = 2;
+      fixture.detectChanges();
+      let image = debugElement.nativeElement.querySelectorAll('img');
+      image[2].click();
+      tickChanges();
+      previewElement = getPreviewElement();
+      let imageElement = getPreviewImageElement();
+      const operations = overlayContainerElement.querySelectorAll('.ant-image-preview-operations-operation');
+      const zoomIn = operations[1];
+      const zoomOut = operations[2];
+      dispatchFakeEvent(zoomIn, 'click');
+      tickChanges();
+      expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(3, 3, 1) rotate(0deg)');
+      dispatchFakeEvent(zoomOut, 'click');
+      tickChanges();
+      expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(1, 1, 1) rotate(0deg)');
+      discardPeriodicTasks();
+      flush();
+    }));
+
+    it('should have a default value of 0.5 for zoomStep', fakeAsync(() => {
+      context.firstSrc = QUICK_SRC;
+      context.zoomStep = null;
+      fixture.detectChanges();
+      let image = debugElement.nativeElement.querySelector('img');
+      image.click();
+      tickChanges();
+      previewElement = getPreviewElement();
+      let imageElement = getPreviewImageElement();
+      const operations = overlayContainerElement.querySelectorAll('.ant-image-preview-operations-operation');
+      const zoomIn = operations[1];
+      dispatchFakeEvent(zoomIn, 'click');
+      tickChanges();
+      expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(1.5, 1.5, 1) rotate(0deg)');
+      discardPeriodicTasks();
+      flush();
+    }));
+
+    it('should the groupZoomStep variable be set for each image"s zoomStep', fakeAsync(() => {
+      context.firstSrc = QUICK_SRC;
+      context.groupZoomStep = 5;
+      fixture.detectChanges();
+      let image = debugElement.nativeElement.querySelectorAll('img');
+      image[0].click();
+      tickChanges();
+      previewElement = getPreviewElement();
+      let imageElement = getPreviewImageElement();
+      const operations = overlayContainerElement.querySelectorAll('.ant-image-preview-operations-operation');
+      const zoomIn = operations[1];
+      dispatchFakeEvent(zoomIn, 'click');
+      tickChanges();
+      expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(6, 6, 1) rotate(0deg)');
+      discardPeriodicTasks();
+      flush();
+    }));
+
+    it('should the groupZoomStep variable be set for each image"s zoomStep Except those that already have a zoomStep value', fakeAsync(() => {
+      context.firstSrc = QUICK_SRC;
+      context.groupZoomStep = 5;
+      context.zoomStep = 3;
+      fixture.detectChanges();
+      let image = debugElement.nativeElement.querySelectorAll('img');
+      image[2].click();
+      tickChanges();
+      previewElement = getPreviewElement();
+      let imageElement = getPreviewImageElement();
+      let operations = overlayContainerElement.querySelectorAll('.ant-image-preview-operations-operation');
+      let zoomIn = operations[1];
+      dispatchFakeEvent(zoomIn, 'click');
+      tickChanges();
+      expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(4, 4, 1) rotate(0deg)');
+      discardPeriodicTasks();
+      flush();
+    }));
+
+    it('should global config work', fakeAsync(() => {
+      configService.set('image', { nzScaleStep: 10 });
+      context.firstSrc = QUICK_SRC;
+      fixture.detectChanges();
+      tickChanges();
+      let image = debugElement.nativeElement.querySelectorAll('img');
+      image[3].click();
+      tickChanges();
+      previewElement = getPreviewElement();
+      let imageElement = getPreviewImageElement();
+      let operations = overlayContainerElement.querySelectorAll('.ant-image-preview-operations-operation');
+      let zoomIn = operations[1];
+      dispatchFakeEvent(zoomIn, 'click');
+      tickChanges();
+      expect(imageElement!.getAttribute('style')).toContain('transform: scale3d(11, 11, 1) rotate(0deg)');
+      discardPeriodicTasks();
+      flush();
+    }));
+
+    it('should detect mouse zoom direction correctly', fakeAsync(() => {
+      context.images = [{ src: QUICK_SRC }];
+      context.createUsingService();
+      const previewInstance = context.previewRef?.previewInstance!;
+      tickChanges();
+      previewInstance.imagePreviewWrapper.nativeElement.dispatchEvent(new MouseEvent('mousedown'));
+      expect(previewInstance.isDragging).toEqual(true);
+      let isZoomingInside = previewInstance['isZoomedInWithMouseWheel'](10);
+      expect(isZoomingInside).toBeFalsy();
+      isZoomingInside = previewInstance['isZoomedInWithMouseWheel'](-10);
+      expect(isZoomingInside).toBeTruthy();
+    }));
+
+    it('should call correct methods when zooming in or out', fakeAsync(() => {
+      context.images = [{ src: QUICK_SRC }];
+      context.createUsingService();
+      const previewInstance = context.previewRef?.previewInstance!;
+      tickChanges();
+      previewInstance.imagePreviewWrapper.nativeElement.dispatchEvent(new MouseEvent('mousedown'));
+      previewInstance['zoom'] = 5;
+      spyOn(previewInstance, 'onZoomOut');
+      spyOn<NzSafeAny>(previewInstance, 'reCenterImage');
+      previewInstance['handleImageScaleWhileZoomingWithMouse'](10);
+      expect(previewInstance.onZoomOut).toHaveBeenCalled();
+      expect(previewInstance['reCenterImage']).not.toHaveBeenCalled();
+
+      previewInstance['zoom'] = 0.5;
+      spyOn(previewInstance, 'onZoomIn');
+      spyOn<NzSafeAny>(previewInstance, 'reCenterImage');
+      previewInstance['handleImageScaleWhileZoomingWithMouse'](-10);
+      expect(previewInstance.onZoomOut).toHaveBeenCalled();
+      expect(previewInstance['reCenterImage']).toHaveBeenCalled();
     }));
 
     it('should container click work', fakeAsync(() => {
@@ -447,8 +601,37 @@ describe('Preview', () => {
       tickChanges();
       previewInstance.imagePreviewWrapper.nativeElement.dispatchEvent(new MouseEvent('mousedown'));
       expect(previewInstance.isDragging).toEqual(true);
-      previewInstance.onDragReleased();
+      spyOn(previewInstance, 'onDragEnd').and.callFake(function () {
+        return true;
+      });
       expect(previewInstance.position).toEqual({ x: 0, y: 0 });
+    }));
+
+    it('should onDragEnd be called after drag is ended', fakeAsync(() => {
+      context.images = [{ src: QUICK_SRC }];
+      context.createUsingService();
+      const previewInstance = context.previewRef?.previewInstance!;
+      tickChanges();
+      previewInstance.imagePreviewWrapper.nativeElement.dispatchEvent(new MouseEvent('mousedown'));
+      spyOn(previewInstance, 'onDragEnd').and.callFake(function () {
+        return true;
+      });
+      const e: NzSafeAny = {};
+      previewInstance.onDragEnd(e);
+      expect(previewInstance['onDragEnd']).toHaveBeenCalled();
+    }));
+
+    it('should zoom to center when zoom is <= 1', fakeAsync(() => {
+      context.images = [{ src: QUICK_SRC }];
+      context.createUsingService();
+      const previewInstance = context.previewRef?.previewInstance!;
+      spyOn<NzSafeAny>(previewInstance, 'reCenterImage');
+      tickChanges();
+      context.zoomStep = 0.25;
+      (previewInstance as NzSafeAny).zoom = 1.1;
+      previewInstance.onZoomOut();
+      tickChanges();
+      expect(previewInstance['reCenterImage']).toHaveBeenCalled();
     }));
 
     it('should position calculate correct', () => {
@@ -539,6 +722,29 @@ describe('Preview', () => {
       expect(pos.y).toBe(-66);
     });
   });
+
+  describe('Zoom with mouse', () => {
+    it('should call proper methods', fakeAsync(() => {
+      context.images = [{ src: QUICK_SRC }];
+      context.createUsingService();
+      const previewInstance = context.previewRef?.previewInstance!;
+      tickChanges();
+      const e = jasmine.createSpyObj('e', ['preventDefault', 'stopPropagation']);
+      spyOn<NzSafeAny>(previewInstance, 'handlerImageTransformationWhileZoomingWithMouse');
+      spyOn<NzSafeAny>(previewInstance, 'handleImageScaleWhileZoomingWithMouse');
+      spyOn<NzSafeAny>(previewInstance, 'updatePreviewImageWrapperTransform');
+      spyOn<NzSafeAny>(previewInstance, 'updatePreviewImageTransform');
+      spyOn<NzSafeAny>(previewInstance, 'markForCheck');
+      previewInstance.wheelZoomEventHandler(e);
+      expect(e.preventDefault).toHaveBeenCalled();
+      expect(e.stopPropagation).toHaveBeenCalled();
+      expect(previewInstance['handlerImageTransformationWhileZoomingWithMouse']).toHaveBeenCalled();
+      expect(previewInstance['handleImageScaleWhileZoomingWithMouse']).toHaveBeenCalled();
+      expect(previewInstance['updatePreviewImageWrapperTransform']).toHaveBeenCalled();
+      expect(previewInstance['updatePreviewImageTransform']).toHaveBeenCalled();
+      expect(previewInstance['markForCheck']).toHaveBeenCalled();
+    }));
+  });
 });
 
 @Component({
@@ -571,10 +777,11 @@ export class TestImageFallbackComponent {
 
 @Component({
   template: `
-    <nz-image-group>
+    <nz-image-group [nzScaleStep]="groupZoomStep">
       <img nz-image [nzSrc]="firstSrc" [nzDisablePreview]="disablePreview" />
-      <img nz-image [nzSrc]="secondSrc" [nzDisablePreview]="disablePreview" />
+      <img nz-image [nzSrc]="secondSrc" [nzDisablePreview]="disablePreview" [nzScaleStep]="zoomStep" />
     </nz-image-group>
+    <img nz-image [nzSrc]="firstSrc" [nzDisablePreview]="disablePreview" [nzScaleStep]="zoomStep" />
     <img nz-image [nzSrc]="firstSrc" [nzDisablePreview]="disablePreview" />
   `
 })
@@ -584,6 +791,8 @@ export class TestImagePreviewGroupComponent {
   secondSrc = '';
   previewRef: NzImagePreviewRef | null = null;
   images: NzImage[] = [];
+  zoomStep: number | null = null;
+  groupZoomStep: number | null = null;
 
   @ViewChild(NzImageGroupComponent) nzImageGroup!: NzImageGroupComponent;
   @ViewChild(NzImageDirective) nzImage!: NzImageDirective;

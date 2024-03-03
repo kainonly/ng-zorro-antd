@@ -1,16 +1,16 @@
 import { BACKSPACE, DOWN_ARROW, ENTER, ESCAPE, SPACE, TAB, UP_ARROW } from '@angular/cdk/keycodes';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { ApplicationRef, Component, TemplateRef, ViewChild } from '@angular/core';
-import { ComponentFixture, TestBed, fakeAsync, flush, inject, tick } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, flush, inject, TestBed, tick } from '@angular/core/testing';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { By } from '@angular/platform-browser';
 
 import {
-  ɵComponentBed as ComponentBed,
-  ɵcreateComponentBed as createComponentBed,
   dispatchFakeEvent,
   dispatchKeyboardEvent,
-  dispatchMouseEvent
+  dispatchMouseEvent,
+  ɵComponentBed as ComponentBed,
+  ɵcreateComponentBed as createComponentBed
 } from 'ng-zorro-antd/core/testing';
 import { NzSafeAny, NzStatus } from 'ng-zorro-antd/core/types';
 import { NzFormControlStatusType, NzFormModule } from 'ng-zorro-antd/form';
@@ -274,6 +274,21 @@ describe('select', () => {
       fixture.detectChanges();
       expect(selectElement.classList).toContain('ant-select-disabled');
       expect(selectElement.querySelector('input')!.getAttribute('disabled')).toBe('');
+    }));
+    it('should nzTitle works', fakeAsync(() => {
+      component.listOfOption = [
+        { nzValue: '1', nzLabel: '1' },
+        { nzValue: '2', nzLabel: '2', nzTitle: '-' },
+        { nzValue: '3', nzLabel: '3', nzTitle: null }
+      ];
+      component.nzOpen = true;
+      fixture.detectChanges();
+      flush();
+      fixture.detectChanges();
+      console.log(document.querySelectorAll('nz-option-item'));
+      expect((document.querySelectorAll('nz-option-item')[0] as HTMLElement)?.title).toBe('1');
+      expect((document.querySelectorAll('nz-option-item')[1] as HTMLElement)?.title).toBe('-');
+      expect((document.querySelectorAll('nz-option-item')[2] as HTMLElement)?.title).toBeFalsy();
     }));
 
     it('should select option by enter', fakeAsync(() => {
@@ -571,6 +586,8 @@ describe('select', () => {
     let component: TestSelectTemplateMultipleComponent;
     let fixture: ComponentFixture<TestSelectTemplateMultipleComponent>;
     let selectElement!: HTMLElement;
+    let overlayContainerElement: HTMLElement;
+
     beforeEach(() => {
       testBed = createComponentBed(TestSelectTemplateMultipleComponent, {
         imports: [NzSelectModule, NzIconTestModule, FormsModule]
@@ -578,6 +595,7 @@ describe('select', () => {
       component = testBed.component;
       fixture = testBed.fixture;
       selectElement = testBed.debugElement.query(By.directive(NzSelectComponent)).nativeElement;
+      overlayContainerElement = TestBed.inject(OverlayContainer).getContainerElement();
     });
     it('should classname correct', () => {
       expect(selectElement.classList).toContain('ant-select-multiple');
@@ -756,6 +774,35 @@ describe('select', () => {
       dispatchFakeEvent(inputElement, 'input');
       dispatchMouseEvent(listOfContainerItem[0], 'click');
       flushRefresh();
+      expect(inputElement.value).toBe('test');
+    }));
+    it('should nzAutoClearSearchValue work when cdkOverlay send emit close', fakeAsync(() => {
+      const flushRefresh = (): void => {
+        fixture.detectChanges();
+        flush();
+        fixture.detectChanges();
+      };
+      component.nzOpen = true;
+      component.listOfOption = [
+        { nzValue: 'test_01', nzLabel: 'test_01' },
+        { nzValue: 'test_02', nzLabel: 'test_02' }
+      ];
+      flushRefresh();
+      const listOfContainerItem = document.querySelectorAll('nz-option-item');
+      const inputElement = selectElement.querySelector('input')!;
+      inputElement.value = 'test';
+      dispatchFakeEvent(inputElement, 'input');
+      dispatchMouseEvent(listOfContainerItem[0], 'click');
+      flushRefresh();
+      expect(inputElement.value).toBe('');
+      component.nzAutoClearSearchValue = false;
+      flushRefresh();
+      inputElement.value = 'test';
+      dispatchFakeEvent(inputElement, 'input');
+      dispatchKeyboardEvent(overlayContainerElement, 'keydown', ESCAPE, overlayContainerElement);
+      fixture.detectChanges();
+      flushRefresh();
+      fixture.detectChanges();
       expect(inputElement.value).toBe('test');
     }));
   });
@@ -1064,6 +1111,8 @@ describe('select', () => {
     let component: TestSelectReactiveMultipleComponent;
     let fixture: ComponentFixture<TestSelectReactiveMultipleComponent>;
     let selectElement!: HTMLElement;
+    let overlayContainerElement: HTMLElement;
+
     beforeEach(() => {
       testBed = createComponentBed(TestSelectReactiveMultipleComponent, {
         imports: [NzSelectModule, NzIconTestModule, FormsModule]
@@ -1071,6 +1120,7 @@ describe('select', () => {
       component = testBed.component;
       fixture = testBed.fixture;
       selectElement = testBed.debugElement.query(By.directive(NzSelectComponent)).nativeElement;
+      overlayContainerElement = TestBed.inject(OverlayContainer).getContainerElement();
     });
     it('should ngModel works', fakeAsync(() => {
       component.listOfOption = [
@@ -1246,6 +1296,35 @@ describe('select', () => {
       dispatchFakeEvent(inputElement, 'input');
       dispatchMouseEvent(listOfContainerItem[0], 'click');
       flushRefresh();
+      expect(inputElement.value).toBe('test');
+    }));
+    it('should nzAutoClearSearchValue work when cdkOverlay send emit close', fakeAsync(() => {
+      const flushRefresh = (): void => {
+        fixture.detectChanges();
+        flush();
+        fixture.detectChanges();
+      };
+      component.nzOpen = true;
+      component.listOfOption = [
+        { value: 'test_01', label: 'test_01' },
+        { value: 'test_02', label: 'test_02' }
+      ];
+      flushRefresh();
+      const listOfContainerItem = document.querySelectorAll('nz-option-item');
+      const inputElement = selectElement.querySelector('input')!;
+      inputElement.value = 'test';
+      dispatchFakeEvent(inputElement, 'input');
+      dispatchMouseEvent(listOfContainerItem[0], 'click');
+      flushRefresh();
+      expect(inputElement.value).toBe('');
+      component.nzAutoClearSearchValue = false;
+      flushRefresh();
+      inputElement.value = 'test';
+      dispatchFakeEvent(inputElement, 'input');
+      dispatchKeyboardEvent(overlayContainerElement, 'keydown', ESCAPE, overlayContainerElement);
+      fixture.detectChanges();
+      flushRefresh();
+      fixture.detectChanges();
       expect(inputElement.value).toBe('test');
     }));
   });
@@ -1554,6 +1633,7 @@ describe('select', () => {
         *ngFor="let o of listOfOption"
         [nzValue]="o.nzValue"
         [nzLabel]="o.nzLabel"
+        [nzTitle]="o.nzTitle"
         [nzDisabled]="o.nzDisabled"
         [nzHide]="o.nzHide"
       ></nz-option>
@@ -1562,6 +1642,7 @@ describe('select', () => {
           *ngFor="let o of group.children"
           [nzValue]="o.nzValue"
           [nzLabel]="o.nzLabel"
+          [nzTitle]="o.nzTitle"
           [nzDisabled]="o.nzDisabled"
           [nzHide]="o.nzHide"
         ></nz-option>

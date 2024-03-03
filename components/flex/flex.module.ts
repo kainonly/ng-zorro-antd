@@ -5,5 +5,10 @@
 
 import { NgModule } from '@angular/core';
 
-@NgModule()
-export class NzMessageServiceModule {}
+import { NzFlexDirective } from './nz-flex.directive';
+
+@NgModule({
+  imports: [NzFlexDirective],
+  exports: [NzFlexDirective]
+})
+export class NzFlexModule {}

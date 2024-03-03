@@ -3,6 +3,7 @@ category: Components
 type: Other
 cols: 1
 title: WaterMark
+tag: New
 cover: https://img.alicdn.com/imgextra/i3/O1CN0194FGAd1FlrwQShfR8_!!6000000000528-0-tps-952-502.jpg
 ---
 
@@ -13,13 +14,18 @@ Add specific text or patterns to the page.
 - Use when the page needs to be watermarked to identify the copyright.
 - Suitable for preventing information theft.
 
+module:
 ```ts
 import { NzWaterMarkModule } from 'ng-zorro-antd/water-mark';
+```
+standalone:
+```ts
+import { NzWaterMarkComponent } from 'ng-zorro-antd/water-mark';
 ```
 
 ## API
 
-### nz-water-mark
+### nz-water-mark:standalone
 
 | Property    | Description                                                                                       | Type                 | Default                  |
 | ----------- | ------------------------------------------------------------------------------------------------- | -------------------- | ------------------------ |

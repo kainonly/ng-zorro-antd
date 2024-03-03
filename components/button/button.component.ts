@@ -28,7 +28,7 @@ import { filter, startWith, takeUntil } from 'rxjs/operators';
 import { NzConfigKey, NzConfigService, WithConfig } from 'ng-zorro-antd/core/config';
 import { BooleanInput } from 'ng-zorro-antd/core/types';
 import { InputBoolean } from 'ng-zorro-antd/core/util';
-import { NzIconDirective } from 'ng-zorro-antd/icon';
+import { NzIconDirective, NzIconModule } from 'ng-zorro-antd/icon';
 
 export type NzButtonType = 'primary' | 'default' | 'dashed' | 'link' | 'text' | null;
 export type NzButtonShape = 'circle' | 'round' | null;
@@ -43,7 +43,9 @@ const NZ_CONFIG_MODULE_NAME: NzConfigKey = 'button';
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   template: `
-    <span nz-icon nzType="loading" *ngIf="nzLoading"></span>
+    @if (nzLoading) {
+      <span nz-icon nzType="loading"></span>
+    }
     <ng-content></ng-content>
   `,
   host: {
@@ -62,9 +64,12 @@ const NZ_CONFIG_MODULE_NAME: NzConfigKey = 'button';
     '[class.ant-btn-block]': `nzBlock`,
     '[class.ant-input-search-button]': `nzSearch`,
     '[class.ant-btn-rtl]': `dir === 'rtl'`,
+    '[class.ant-btn-icon-only]': `iconOnly`,
     '[attr.tabindex]': 'disabled ? -1 : (tabIndex === null ? null : tabIndex)',
     '[attr.disabled]': 'disabled || null'
-  }
+  },
+  imports: [NzIconModule],
+  standalone: true
 })
 export class NzButtonComponent implements OnDestroy, OnChanges, AfterViewInit, AfterContentInit, OnInit {
   readonly _nzModuleName: NzConfigKey = NZ_CONFIG_MODULE_NAME;
@@ -101,28 +106,15 @@ export class NzButtonComponent implements OnDestroy, OnChanges, AfterViewInit, A
     });
   }
 
-  assertIconOnly(element: HTMLButtonElement, renderer: Renderer2): void {
-    const listOfNode = Array.from(element.childNodes);
-    const iconCount = listOfNode.filter(node => {
-      const iconChildNodes = Array.from(node.childNodes || []);
-      return node.nodeName === 'SPAN' && iconChildNodes.length > 0 && iconChildNodes.every(ic => ic.nodeName === 'svg');
-    }).length;
+  public get iconOnly(): boolean {
+    const listOfNode = Array.from((this.elementRef?.nativeElement as HTMLButtonElement)?.childNodes || []);
     const noText = listOfNode.every(node => node.nodeName !== '#text');
-    // ignore icon
-    const noSpan = listOfNode
-      .filter(node => {
-        const iconChildNodes = Array.from(node.childNodes || []);
-        return !(
-          node.nodeName === 'SPAN' &&
-          iconChildNodes.length > 0 &&
-          iconChildNodes.every(ic => ic.nodeName === 'svg')
-        );
-      })
-      .every(node => node.nodeName !== 'SPAN');
-    const isIconOnly = noSpan && noText && iconCount >= 1;
-    if (isIconOnly) {
-      renderer.addClass(element, 'ant-btn-icon-only');
-    }
+    // ignore icon and comment
+    const noSpan =
+      listOfNode.filter(node => {
+        return !(node.nodeName === '#comment' || !!(node as HTMLElement)?.attributes?.getNamedItem('nz-icon'));
+      }).length == 0;
+    return !!this.nzIconDirectiveElement && noSpan && noText;
   }
 
   constructor(
@@ -173,7 +165,6 @@ export class NzButtonComponent implements OnDestroy, OnChanges, AfterViewInit, A
   }
 
   ngAfterViewInit(): void {
-    this.assertIconOnly(this.elementRef.nativeElement, this.renderer);
     this.insertSpan(this.elementRef.nativeElement.childNodes, this.renderer);
   }
 
